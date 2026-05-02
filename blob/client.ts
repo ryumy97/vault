@@ -5,19 +5,19 @@ import { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } from "@/lib/env";
 import { R2_ENDPOINT } from "@/lib/env";
 import { R2_BUCKET } from "@/lib/env";
 
-const cachedClient: S3Client | null = null;
+let cachedClient: S3Client | null = null;
 
 /**
  * Shared S3-compatible client for Cloudflare R2.
  *
- * Required env: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`, 'R2_FORCE_PATH_STYLE'
+ * Required env: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`
  */
 export function getR2Client(): S3Client {
-  if (cachedClient !== null) {
+  if (cachedClient) {
     return cachedClient;
   }
 
-  return new S3Client({
+  cachedClient = new S3Client({
     region: "auto",
     endpoint: R2_ENDPOINT?.trim(),
     credentials: {
@@ -25,6 +25,8 @@ export function getR2Client(): S3Client {
       secretAccessKey: R2_SECRET_ACCESS_KEY,
     },
   });
+
+  return cachedClient;
 }
 
 export function getR2BucketName(): string {
