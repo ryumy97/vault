@@ -2,6 +2,7 @@ import { ArrowLeft, FileIcon, Folder } from "lucide-react";
 import Link from "next/link";
 
 import { CreateDirectoryForm } from "@/components/create-directory-form";
+import { DirectoryDropZone } from "@/components/directory-drop-zone";
 import { formatBytes } from "@/lib/format-bytes";
 import { hrefForDirectoryPath } from "@/lib/directory-url";
 import type { Directory, FileRecord } from "@/db/schema";
@@ -52,7 +53,8 @@ export function DirectoryBrowser({
         </p>
       </header>
 
-      <div className="space-y-8">
+      <DirectoryDropZone directoryId={directory.id}>
+        <div className="space-y-8">
         <section>
           <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Folders
@@ -115,7 +117,8 @@ export function DirectoryBrowser({
             </ul>
           )}
         </section>
-      </div>
+        </div>
+      </DirectoryDropZone>
     </div>
   );
 }

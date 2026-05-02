@@ -2,11 +2,27 @@
 
 import { randomUUID } from "node:crypto";
 
-import { putBlob } from "@/blob";
-import { createFile, getDirectoryById, listFilesInDirectory } from "@/db/actions";
-import type { FileRecord } from "@/db/schema";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+import {
+  getR2BucketName,
+  getR2Client,
+  headBlob,
+} from "@/blob";
+import {
+  createFile,
+  getDirectoryById,
+  getFileByR2ObjectKey,
+  listFilesInDirectory,
+} from "@/db/actions";
+import { getSession } from "@/lib/auth/session";
 import { IS_DEV } from "@/lib/env";
 import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
+
+/** Single-object PUT limit for presigned uploads (raise if your R2 plan allows). */
+const MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
+const PRESIGNED_EXPIRES_SEC = 900;
 
 function sanitizeOriginalFileName(name: string): string {
   const base = name.replace(/\\/g, "/").split("/").pop() ?? "";
@@ -31,7 +47,6 @@ function splitStemExt(filename: string): { stem: string; ext: string } {
   };
 }
 
-/** Picks `name`, then `name (1)`, `name (2)`, … before the extension. */
 function nextAvailableFileName(original: string, taken: Set<string>): string {
   if (!taken.has(original)) {
     return original;
@@ -47,20 +62,69 @@ function nextAvailableFileName(original: string, taken: Set<string>): string {
   }
 }
 
+function assertKeyMatchesFileName(r2ObjectKey: string, finalName: string): boolean {
+  const parts = r2ObjectKey.split("/");
+  if (parts.length < 3) {
+    return false;
+  }
+  const [seg, uuid, ...nameParts] = parts;
+  if (seg !== "upload" && seg !== "dev") {
+    return false;
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(uuid)) {
+    return false;
+  }
+  return nameParts.join("/") === finalName;
+}
+
+export type PrepareClientUploadResult =
+  | {
+      ok: true;
+      uploadUrl: string;
+      r2ObjectKey: string;
+      finalName: string;
+      headers: Record<string, string>;
+    }
+  | { ok: false; error: string };
+
 /**
- * Uploads one file into a directory: resolves duplicate display names, stores the object in R2 at
- * `upload/{uuid}/{filename}` (or `dev/...` when `NODE_ENV === "development"`), then inserts a `files` row.
+ * Issues a short-lived presigned PUT URL so the browser uploads bytes directly to R2
+ * (no file body through Next.js). Call {@link finalizeClientUpload} after a successful PUT.
  */
-export async function uploadFileToDirectory(
+export async function prepareClientUpload(
   directoryId: string,
-  file: File,
-): Promise<FileRecord> {
-  const dir = await getDirectoryById(directoryId);
-  if (!dir) {
-    throw new Error("Directory not found");
+  originalFileName: string,
+  contentType: string | undefined,
+  byteSize: number,
+): Promise<PrepareClientUploadResult> {
+  if (!(await getSession())) {
+    return { ok: false, error: "Unauthorized." };
+  }
+  if (!Number.isFinite(byteSize) || byteSize < 0) {
+    return { ok: false, error: "Invalid file size." };
+  }
+  if (byteSize > MAX_UPLOAD_BYTES) {
+    return {
+      ok: false,
+      error: `File too large (max ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB).`,
+    };
   }
 
-  const rawName = sanitizeOriginalFileName(file.name);
+  let rawName: string;
+  try {
+    rawName = sanitizeOriginalFileName(originalFileName);
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Invalid file name.",
+    };
+  }
+
+  const dir = await getDirectoryById(directoryId);
+  if (!dir) {
+    return { ok: false, error: "Directory not found." };
+  }
+
   const existing = await listFilesInDirectory(directoryId);
   const taken = new Set(existing.map((f) => f.name));
   const finalName = nextAvailableFileName(rawName, taken);
@@ -68,22 +132,90 @@ export async function uploadFileToDirectory(
   const objectId = randomUUID();
   const segment = IS_DEV ? "dev" : "upload";
   const r2ObjectKey = `${segment}/${objectId}/${finalName}`;
+  const resolvedType = (contentType?.trim() || "application/octet-stream").slice(
+    0,
+    255,
+  );
 
-  const body = Buffer.from(await file.arrayBuffer());
-
-  await putBlob(r2ObjectKey, body, {
-    contentType: file.type || undefined,
+  const command = new PutObjectCommand({
+    Bucket: getR2BucketName(),
+    Key: r2ObjectKey,
+    ContentType: resolvedType,
+    ContentLength: byteSize,
   });
 
-  const record = await createFile({
-    directoryId,
-    name: finalName,
+  let uploadUrl: string;
+  try {
+    uploadUrl = await getSignedUrl(getR2Client(), command, {
+      expiresIn: PRESIGNED_EXPIRES_SEC,
+    });
+  } catch {
+    return { ok: false, error: "Could not create upload URL." };
+  }
+
+  return {
+    ok: true,
+    uploadUrl,
     r2ObjectKey,
-    sizeBytes: BigInt(file.size),
-    contentType: file.type || undefined,
-  });
+    finalName,
+    headers: {
+      "Content-Type": resolvedType,
+    },
+  };
+}
+
+export type FinalizeClientUploadResult = { ok: true } | { ok: false; error: string };
+
+/** Verifies the object exists in R2 with the expected size, then inserts the `files` row. */
+export async function finalizeClientUpload(
+  directoryId: string,
+  r2ObjectKey: string,
+  finalName: string,
+  byteSize: number,
+  contentType: string | undefined,
+): Promise<FinalizeClientUploadResult> {
+  if (!(await getSession())) {
+    return { ok: false, error: "Unauthorized." };
+  }
+
+  const dir = await getDirectoryById(directoryId);
+  if (!dir) {
+    return { ok: false, error: "Directory not found." };
+  }
+
+  if (!assertKeyMatchesFileName(r2ObjectKey, finalName)) {
+    return { ok: false, error: "Invalid object key." };
+  }
+
+  const already = await getFileByR2ObjectKey(r2ObjectKey);
+  if (already) {
+    revalidateDirectoryListing(dir.path);
+    return { ok: true };
+  }
+
+  const head = await headBlob(r2ObjectKey);
+  if (!head || head.contentLength === undefined) {
+    return { ok: false, error: "Upload not found in storage." };
+  }
+  if (head.contentLength !== byteSize) {
+    return { ok: false, error: "Uploaded size does not match." };
+  }
+
+  const resolvedContentType =
+    (contentType?.trim() || "application/octet-stream").slice(0, 255);
+
+  try {
+    await createFile({
+      directoryId,
+      name: finalName,
+      r2ObjectKey,
+      sizeBytes: BigInt(byteSize),
+      contentType: resolvedContentType,
+    });
+  } catch {
+    return { ok: false, error: "Could not save file metadata." };
+  }
 
   revalidateDirectoryListing(dir.path);
-
-  return record;
+  return { ok: true };
 }
