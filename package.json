@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "yarn db:migrate",
-    "predev": "yarn db:migrate",
+    "prebuild": "yarn db:migrate && yarn db:seed",
+    "predev": "yarn db:migrate && yarn db:seed",
     "dev": "next dev --experimental-https",
     "build": "next build",
     "start": "next start",
