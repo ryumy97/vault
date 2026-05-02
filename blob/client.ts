@@ -1,49 +1,32 @@
 import "server-only";
 
 import { S3Client } from "@aws-sdk/client-s3";
+import { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } from "@/lib/env";
+import { R2_ENDPOINT } from "@/lib/env";
+import { R2_BUCKET } from "@/lib/env";
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (value === undefined || value === "") {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
-let cachedClient: S3Client | null = null;
+const cachedClient: S3Client | null = null;
 
 /**
  * Shared S3-compatible client for Cloudflare R2.
  *
- * Required env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`
- * Optional: `R2_ENDPOINT` (defaults to `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`),
- * `R2_FORCE_PATH_STYLE` (`true` by default; set to `false` if your setup needs virtual-hosted style).
+ * Required env: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`, 'R2_FORCE_PATH_STYLE'
  */
 export function getR2Client(): S3Client {
-  if (cachedClient) {
+  if (cachedClient !== null) {
     return cachedClient;
   }
 
-  const accountId = requireEnv("R2_ACCOUNT_ID");
-  const endpoint =
-    process.env.R2_ENDPOINT?.trim() ||
-    `https://${accountId}.r2.cloudflarestorage.com`;
-
-  const forcePathStyle = process.env.R2_FORCE_PATH_STYLE !== "false";
-
-  cachedClient = new S3Client({
+  return new S3Client({
     region: "auto",
-    endpoint,
+    endpoint: R2_ENDPOINT?.trim(),
     credentials: {
-      accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
-      secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
     },
-    forcePathStyle,
   });
-
-  return cachedClient;
 }
 
 export function getR2BucketName(): string {
-  return requireEnv("R2_BUCKET");
+  return R2_BUCKET;
 }
