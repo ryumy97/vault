@@ -6,6 +6,7 @@ import { putBlob } from "@/blob";
 import { createFile, getDirectoryById, listFilesInDirectory } from "@/db/actions";
 import type { FileRecord } from "@/db/schema";
 import { IS_DEV } from "@/lib/env";
+import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 function sanitizeOriginalFileName(name: string): string {
   const base = name.replace(/\\/g, "/").split("/").pop() ?? "";
@@ -74,11 +75,15 @@ export async function uploadFileToDirectory(
     contentType: file.type || undefined,
   });
 
-  return createFile({
+  const record = await createFile({
     directoryId,
     name: finalName,
     r2ObjectKey,
     sizeBytes: BigInt(file.size),
     contentType: file.type || undefined,
   });
+
+  revalidateDirectoryListing(dir.path);
+
+  return record;
 }

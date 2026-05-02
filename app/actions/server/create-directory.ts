@@ -1,12 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import {
   createDirectory,
   getDirectoryById,
   listChildDirectories,
 } from "@/db/actions";
+import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 export type CreateDirectoryState = {
   error: string | null;
@@ -55,6 +54,6 @@ export async function createDirectoryAction(
     return { error: "Could not create folder." };
   }
 
-  revalidatePath("/");
+  revalidateDirectoryListing(parent.path);
   return { error: null };
 }
