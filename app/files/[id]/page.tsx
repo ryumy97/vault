@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
+import { DeleteFileDialog } from "@/components/delete-file-dialog";
 import { FileEntryIcon } from "@/components/file-entry-icon";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDirectoryById, getFileById } from "@/db/actions";
@@ -85,13 +86,16 @@ export default async function FileDetailPage({ params }: PageProps) {
       </Link>
 
       <header className="mb-8 flex flex-wrap items-start gap-4">
-        <FileEntryIcon name={file.name} contentType={file.contentType} className="size-10" />
-        <div className="min-w-0 flex-1">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            {file.name}
-          </h1>
-          <p className="mt-1 break-all font-mono text-sm text-muted-foreground">{pathLabel}</p>
+        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
+          <FileEntryIcon name={file.name} contentType={file.contentType} className="size-10" />
+          <div className="min-w-0 flex-1">
+            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+              {file.name}
+            </h1>
+            <p className="mt-1 break-all font-mono text-sm text-muted-foreground">{pathLabel}</p>
+          </div>
         </div>
+        <DeleteFileDialog fileId={file.id} fileName={file.name} />
       </header>
 
       {showImagePreview ? (

@@ -13,6 +13,7 @@ import {
 
 import { finalizeClientUpload, prepareClientUpload } from "@/app/actions/server/upload-file";
 import { Button } from "@/components/ui/button";
+import { extractUploadMetadata } from "@/lib/extract-upload-metadata";
 import { cn } from "@/lib/utils";
 
 type DirectoryDropZoneProps = {
@@ -60,12 +61,15 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
             );
           }
 
+          const metadata = (await extractUploadMetadata(file)) ?? undefined;
+
           const fin = await finalizeClientUpload(
             directoryId,
             prep.r2ObjectKey,
             prep.finalName,
             file.size,
             file.type || undefined,
+            metadata,
           );
           if (!fin.ok) {
             throw new Error(fin.error);

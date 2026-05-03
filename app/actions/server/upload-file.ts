@@ -6,6 +6,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { getR2BucketName, getR2Client, headBlob } from "@/blob";
+import type { FileMetadataKv } from "@/db";
 import {
   createFile,
   getDirectoryById,
@@ -15,6 +16,7 @@ import {
 import { getSession } from "@/lib/auth/session";
 import { IS_DEV } from "@/lib/env";
 import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
+import { sanitizeFileMetadata } from "@/lib/sanitize-file-metadata";
 
 /** Single-object PUT limit for presigned uploads (raise if your R2 plan allows). */
 const MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
@@ -58,7 +60,10 @@ function nextAvailableFileName(original: string, taken: Set<string>): string {
   }
 }
 
-function assertKeyMatchesFileName(r2ObjectKey: string, finalName: string): boolean {
+function assertKeyMatchesFileName(
+  r2ObjectKey: string,
+  finalName: string,
+): boolean {
   const parts = r2ObjectKey.split("/");
   if (parts.length < 3) {
     return false;
@@ -128,7 +133,9 @@ export async function prepareClientUpload(
   const objectId = randomUUID();
   const segment = IS_DEV ? "dev" : "upload";
   const r2ObjectKey = `${segment}/${objectId}/${finalName}`;
-  const resolvedType = (contentType?.trim() || "application/octet-stream").slice(0, 255);
+  const resolvedType = (
+    contentType?.trim() || "application/octet-stream"
+  ).slice(0, 255);
 
   const command = new PutObjectCommand({
     Bucket: getR2BucketName(),
@@ -157,7 +164,9 @@ export async function prepareClientUpload(
   };
 }
 
-export type FinalizeClientUploadResult = { ok: true } | { ok: false; error: string };
+export type FinalizeClientUploadResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 /** Verifies the object exists in R2 with the expected size, then inserts the `files` row. */
 export async function finalizeClientUpload(
@@ -166,7 +175,9 @@ export async function finalizeClientUpload(
   finalName: string,
   byteSize: number,
   contentType: string | undefined,
+  metadata: FileMetadataKv | undefined,
 ): Promise<FinalizeClientUploadResult> {
+  const safeMetadata = sanitizeFileMetadata(metadata);
   if (!(await getSession())) {
     return { ok: false, error: "Unauthorized." };
   }
@@ -194,7 +205,9 @@ export async function finalizeClientUpload(
     return { ok: false, error: "Uploaded size does not match." };
   }
 
-  const resolvedContentType = (contentType?.trim() || "application/octet-stream").slice(0, 255);
+  const resolvedContentType = (
+    contentType?.trim() || "application/octet-stream"
+  ).slice(0, 255);
 
   try {
     await createFile({
@@ -203,6 +216,7 @@ export async function finalizeClientUpload(
       r2ObjectKey,
       sizeBytes: BigInt(byteSize),
       contentType: resolvedContentType,
+      metadata: safeMetadata ?? null,
     });
   } catch {
     return { ok: false, error: "Could not save file metadata." };
