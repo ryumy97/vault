@@ -27,10 +27,7 @@ type FieldsProps = {
 };
 
 function CreateDirectoryDialogFields({ parentId, onSuccess }: FieldsProps) {
-  const [state, formAction, pending] = useActionState(
-    createDirectoryAction,
-    initialState,
-  );
+  const [state, formAction, pending] = useActionState(createDirectoryAction, initialState);
   const wasPending = useRef(false);
 
   useEffect(() => {
@@ -104,15 +101,9 @@ export function CreateDirectoryForm({ parentId }: CreateDirectoryFormProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New folder</DialogTitle>
-          <DialogDescription>
-            Choose a name for the folder in this directory.
-          </DialogDescription>
+          <DialogDescription>Choose a name for the folder in this directory.</DialogDescription>
         </DialogHeader>
-        <CreateDirectoryDialogFields
-          key={instance}
-          parentId={parentId}
-          onSuccess={handleSuccess}
-        />
+        <CreateDirectoryDialogFields key={instance} parentId={parentId} onSuccess={handleSuccess} />
       </DialogContent>
     </Dialog>
   );

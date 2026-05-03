@@ -4,12 +4,7 @@ import { useActionState } from "react";
 
 import { signInAction } from "@/app/actions/server/sign-in";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const initialState = { error: null as string | null };
 

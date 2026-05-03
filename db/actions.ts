@@ -6,10 +6,10 @@ import { parentDirectoryDbPath } from "@/lib/directory-url";
 
 import { db } from "./index";
 import {
-  directories,
-  files,
   type Directory,
+  directories,
   type FileRecord,
+  files,
   type NewDirectory,
   type NewFileRecord,
 } from "./schema";
@@ -33,41 +33,24 @@ export async function createDirectory(
   return row;
 }
 
-export async function getDirectoryById(
-  id: string,
-): Promise<Directory | undefined> {
-  const [row] = await db
-    .select()
-    .from(directories)
-    .where(eq(directories.id, id))
-    .limit(1);
+export async function getDirectoryById(id: string): Promise<Directory | undefined> {
+  const [row] = await db.select().from(directories).where(eq(directories.id, id)).limit(1);
 
   return row;
 }
 
-export async function getDirectoryByPath(
-  path: string,
-): Promise<Directory | undefined> {
-  const [row] = await db
-    .select()
-    .from(directories)
-    .where(eq(directories.path, path))
-    .limit(1);
+export async function getDirectoryByPath(path: string): Promise<Directory | undefined> {
+  const [row] = await db.select().from(directories).where(eq(directories.path, path)).limit(1);
 
   return row;
 }
 
-export async function listChildDirectories(
-  parentId: string | null,
-): Promise<Directory[]> {
+export async function listChildDirectories(parentId: string | null): Promise<Directory[]> {
   if (parentId === null) {
     return db.select().from(directories).where(isNull(directories.parentId));
   }
 
-  return db
-    .select()
-    .from(directories)
-    .where(eq(directories.parentId, parentId));
+  return db.select().from(directories).where(eq(directories.parentId, parentId));
 }
 
 export async function updateDirectory(
@@ -87,13 +70,8 @@ export async function updateDirectory(
   return row;
 }
 
-export async function deleteDirectoryById(
-  id: string,
-): Promise<Directory | undefined> {
-  const [row] = await db
-    .delete(directories)
-    .where(eq(directories.id, id))
-    .returning();
+export async function deleteDirectoryById(id: string): Promise<Directory | undefined> {
+  const [row] = await db.delete(directories).where(eq(directories.id, id)).returning();
 
   return row;
 }
@@ -169,8 +147,7 @@ export async function renameDirectorySegment(
     return { ok: false, error: "Invalid folder path." };
   }
 
-  const newPath =
-    parentPath === "/" ? `/${trimmed}` : `${parentPath}/${trimmed}`;
+  const newPath = parentPath === "/" ? `/${trimmed}` : `${parentPath}/${trimmed}`;
 
   if (newPath === oldPath && trimmed === dir.name) {
     return {
@@ -202,9 +179,7 @@ export async function renameDirectorySegment(
   const rows = await db
     .select()
     .from(directories)
-    .where(
-      or(eq(directories.path, oldPath), like(directories.path, `${oldPath}/%`)),
-    );
+    .where(or(eq(directories.path, oldPath), like(directories.path, `${oldPath}/%`)));
 
   const sorted = [...rows].sort((a, b) => b.path.length - a.path.length);
 
@@ -214,10 +189,7 @@ export async function renameDirectorySegment(
   );
 
   for (const row of sorted) {
-    const nextPath =
-      row.id === directoryId
-        ? newPath
-        : newPath + row.path.slice(oldPath.length);
+    const nextPath = row.id === directoryId ? newPath : newPath + row.path.slice(oldPath.length);
     const patch: {
       path: string;
       name?: string;
@@ -229,10 +201,7 @@ export async function renameDirectorySegment(
     if (row.id === directoryId) {
       patch.name = trimmed;
     }
-    await db
-      .update(directories)
-      .set(patch)
-      .where(eq(directories.id, row.id));
+    await db.update(directories).set(patch).where(eq(directories.id, row.id));
   }
 
   return {
@@ -245,11 +214,8 @@ export async function renameDirectorySegment(
 }
 
 export async function createFile(
-  values: Pick<
-    NewFileRecord,
-    "directoryId" | "name" | "r2ObjectKey" | "sizeBytes"
-  > &
-    Partial<Pick<NewFileRecord, "contentType" | "checksumSha256">>,
+  values: Pick<NewFileRecord, "directoryId" | "name" | "r2ObjectKey" | "sizeBytes"> &
+    Partial<Pick<NewFileRecord, "contentType" | "checksumSha256" | "metadata">>,
 ): Promise<FileRecord> {
   const [row] = await db
     .insert(files)
@@ -260,6 +226,7 @@ export async function createFile(
       sizeBytes: values.sizeBytes,
       contentType: values.contentType,
       checksumSha256: values.checksumSha256,
+      metadata: values.metadata ?? null,
     })
     .returning();
 
@@ -276,21 +243,13 @@ export async function getFileById(id: string): Promise<FileRecord | undefined> {
   return row;
 }
 
-export async function getFileByR2ObjectKey(
-  r2ObjectKey: string,
-): Promise<FileRecord | undefined> {
-  const [row] = await db
-    .select()
-    .from(files)
-    .where(eq(files.r2ObjectKey, r2ObjectKey))
-    .limit(1);
+export async function getFileByR2ObjectKey(r2ObjectKey: string): Promise<FileRecord | undefined> {
+  const [row] = await db.select().from(files).where(eq(files.r2ObjectKey, r2ObjectKey)).limit(1);
 
   return row;
 }
 
-export async function listFilesInDirectory(
-  directoryId: string,
-): Promise<FileRecord[]> {
+export async function listFilesInDirectory(directoryId: string): Promise<FileRecord[]> {
   return db.select().from(files).where(eq(files.directoryId, directoryId));
 }
 
@@ -305,6 +264,7 @@ export async function updateFile(
       | "sizeBytes"
       | "contentType"
       | "checksumSha256"
+      | "metadata"
     >
   >,
 ): Promise<FileRecord | undefined> {
@@ -321,9 +281,7 @@ export async function updateFile(
   return row;
 }
 
-export async function deleteFileById(
-  id: string,
-): Promise<FileRecord | undefined> {
+export async function deleteFileById(id: string): Promise<FileRecord | undefined> {
   const [row] = await db.delete(files).where(eq(files.id, id)).returning();
 
   return row;

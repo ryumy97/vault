@@ -9,10 +9,7 @@ export type SignInState = {
   error: string | null;
 };
 
-export async function signInAction(
-  _prev: SignInState,
-  formData: FormData,
-): Promise<SignInState> {
+export async function signInAction(_prev: SignInState, formData: FormData): Promise<SignInState> {
   const username = formData.get("username")?.toString() ?? "";
   const password = formData.get("password")?.toString() ?? "";
 

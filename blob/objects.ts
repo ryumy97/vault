@@ -3,10 +3,10 @@ import "server-only";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  type GetObjectCommandOutput,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
-  type GetObjectCommandOutput,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 
@@ -14,8 +14,7 @@ import { getR2BucketName, getR2Client } from "./client";
 
 function isNotFound(err: unknown): boolean {
   if (err && typeof err === "object" && "$metadata" in err) {
-    const code = (err as { $metadata?: { httpStatusCode?: number } }).$metadata
-      ?.httpStatusCode;
+    const code = (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
     return code === 404;
   }
   return false;
@@ -82,9 +81,7 @@ export async function getBlobStream(key: string): Promise<{
 }
 
 export async function deleteBlob(key: string): Promise<void> {
-  await getR2Client().send(
-    new DeleteObjectCommand({ Bucket: getR2BucketName(), Key: key }),
-  );
+  await getR2Client().send(new DeleteObjectCommand({ Bucket: getR2BucketName(), Key: key }));
 }
 
 export type ListedBlob = {
@@ -121,8 +118,7 @@ export async function listBlobs(options?: {
       lastModified: c.LastModified,
     })) ?? [];
 
-  const commonPrefixes =
-    out.CommonPrefixes?.map((p) => p.Prefix!).filter(Boolean) ?? [];
+  const commonPrefixes = out.CommonPrefixes?.map((p) => p.Prefix!).filter(Boolean) ?? [];
 
   return {
     objects,

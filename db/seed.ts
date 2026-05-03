@@ -3,12 +3,12 @@
  * Safe to run repeatedly (`ON CONFLICT (path) DO NOTHING`).
  * Apply migrations first: `yarn db:migrate` or `yarn db:push`.
  */
+
+import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
 import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-
-import { directories } from "./schema";
 import * as schema from "./schema";
+import { directories } from "./schema";
 
 config({ path: ".env" });
 

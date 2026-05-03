@@ -1,10 +1,6 @@
 "use server";
 
-import {
-  createDirectory,
-  getDirectoryById,
-  listChildDirectories,
-} from "@/db/actions";
+import { createDirectory, getDirectoryById, listChildDirectories } from "@/db/actions";
 import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 export type CreateDirectoryState = {

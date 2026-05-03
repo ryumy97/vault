@@ -5,11 +5,7 @@ import { randomUUID } from "node:crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import {
-  getR2BucketName,
-  getR2Client,
-  headBlob,
-} from "@/blob";
+import { getR2BucketName, getR2Client, headBlob } from "@/blob";
 import {
   createFile,
   getDirectoryById,
@@ -132,10 +128,7 @@ export async function prepareClientUpload(
   const objectId = randomUUID();
   const segment = IS_DEV ? "dev" : "upload";
   const r2ObjectKey = `${segment}/${objectId}/${finalName}`;
-  const resolvedType = (contentType?.trim() || "application/octet-stream").slice(
-    0,
-    255,
-  );
+  const resolvedType = (contentType?.trim() || "application/octet-stream").slice(0, 255);
 
   const command = new PutObjectCommand({
     Bucket: getR2BucketName(),
@@ -201,8 +194,7 @@ export async function finalizeClientUpload(
     return { ok: false, error: "Uploaded size does not match." };
   }
 
-  const resolvedContentType =
-    (contentType?.trim() || "application/octet-stream").slice(0, 255);
+  const resolvedContentType = (contentType?.trim() || "application/octet-stream").slice(0, 255);
 
   try {
     await createFile({

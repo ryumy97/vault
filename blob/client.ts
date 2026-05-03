@@ -1,9 +1,7 @@
 import "server-only";
 
 import { S3Client } from "@aws-sdk/client-s3";
-import { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } from "@/lib/env";
-import { R2_ENDPOINT } from "@/lib/env";
-import { R2_BUCKET } from "@/lib/env";
+import { R2_ACCESS_KEY_ID, R2_BUCKET, R2_ENDPOINT, R2_SECRET_ACCESS_KEY } from "@/lib/env";
 
 let cachedClient: S3Client | null = null;
 

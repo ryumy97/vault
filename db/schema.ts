@@ -2,12 +2,19 @@ import {
   bigint,
   foreignKey,
   index,
+  jsonb,
   pgTable,
   timestamp,
   unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+/**
+ * Arbitrary key–value metadata for a file (e.g. EXIF / image inspector fields).
+ * Values are JSON-serializable; prefer strings for display-oriented fields.
+ */
+export type FileMetadataKv = Record<string, string | number | boolean | null>;
 
 /**
  * Folder tree. Store one logical root row (e.g. parentId null, path `/`) via migration or app bootstrap.
@@ -21,12 +28,8 @@ export const directories = pgTable(
     parentId: uuid("parent_id"),
     name: varchar("name", { length: 255 }).notNull(),
     path: varchar("path", { length: 2048 }).notNull().unique(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .defaultNow()
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (t) => [
     foreignKey({
@@ -34,9 +37,7 @@ export const directories = pgTable(
       foreignColumns: [t.id],
       name: "directories_parent_id_directories_id_fk",
     }).onDelete("cascade"),
-    unique("directories_parent_name_unique")
-      .on(t.parentId, t.name)
-      .nullsNotDistinct(),
+    unique("directories_parent_name_unique").on(t.parentId, t.name).nullsNotDistinct(),
     index("directories_parent_id_idx").on(t.parentId),
   ],
 );
@@ -44,6 +45,7 @@ export const directories = pgTable(
 /**
  * File metadata; bytes live in R2 at `r2ObjectKey`.
  * - `name` is the basename within `directoryId`; full path is implicit (`directory.path` + `/` + `name`) and should match R2 layout if you mirror paths in keys.
+ * - `metadata` stores optional key–value JSON (dimensions, camera, exposure, colour profile, etc.).
  */
 export const files = pgTable(
   "files",
@@ -57,12 +59,9 @@ export const files = pgTable(
     sizeBytes: bigint("size_bytes", { mode: "bigint" }).notNull(),
     contentType: varchar("content_type", { length: 255 }),
     checksumSha256: varchar("checksum_sha256", { length: 64 }),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
-      .defaultNow()
-      .notNull(),
+    metadata: jsonb("metadata").$type<FileMetadataKv | null>(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (t) => [
     unique("files_directory_name_unique").on(t.directoryId, t.name),

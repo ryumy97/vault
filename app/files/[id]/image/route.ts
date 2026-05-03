@@ -4,16 +4,12 @@ import { isImageFile } from "@/lib/is-image-file";
 
 function s3HttpStatus(err: unknown): number | undefined {
   if (err && typeof err === "object" && "$metadata" in err) {
-    return (err as { $metadata?: { httpStatusCode?: number } }).$metadata
-      ?.httpStatusCode;
+    return (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
   }
   return undefined;
 }
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const file = await getFileById(id);
   if (!file) {
@@ -25,19 +21,14 @@ export async function GET(
   }
 
   try {
-    const { body, contentType, contentLength } = await getBlobStream(
-      file.r2ObjectKey,
-    );
+    const { body, contentType, contentLength } = await getBlobStream(file.r2ObjectKey);
     if (!body) {
       return new Response("Empty object", { status: 404 });
     }
 
     const stream = body.transformToWebStream();
     const headers = new Headers();
-    headers.set(
-      "Content-Type",
-      contentType ?? file.contentType ?? "application/octet-stream",
-    );
+    headers.set("Content-Type", contentType ?? file.contentType ?? "application/octet-stream");
     if (contentLength != null) {
       headers.set("Content-Length", String(contentLength));
     }

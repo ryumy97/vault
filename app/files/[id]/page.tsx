@@ -1,18 +1,13 @@
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
+import { Fragment } from "react";
 import { FileEntryIcon } from "@/components/file-entry-icon";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDirectoryById, getFileById } from "@/db/actions";
-import { hrefForDirectoryPath, hrefForFileImage } from "@/lib/directory-url";
+import { hrefForDirectoryPath } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
 import { isImageFile } from "@/lib/is-image-file";
 
@@ -32,6 +27,20 @@ function formatDate(d: Date): string {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function formatMetadataValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -59,6 +68,11 @@ export default async function FileDetailPage({ params }: PageProps) {
   const pathLabel = logicalFilePath(parent.path, file.name);
   const backHref = hrefForDirectoryPath(parent.path);
   const showImagePreview = isImageFile(file.name, file.contentType);
+  const metadataEntries = file.metadata
+    ? Object.entries(file.metadata)
+        .filter(([, v]) => v !== null && v !== undefined && v !== "")
+        .toSorted(([a], [b]) => a.localeCompare(b))
+    : [];
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
@@ -71,18 +85,12 @@ export default async function FileDetailPage({ params }: PageProps) {
       </Link>
 
       <header className="mb-8 flex flex-wrap items-start gap-4">
-        <FileEntryIcon
-          name={file.name}
-          contentType={file.contentType}
-          className="size-10"
-        />
+        <FileEntryIcon name={file.name} contentType={file.contentType} className="size-10" />
         <div className="min-w-0 flex-1">
           <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
             {file.name}
           </h1>
-          <p className="mt-1 break-all font-mono text-sm text-muted-foreground">
-            {pathLabel}
-          </p>
+          <p className="mt-1 break-all font-mono text-sm text-muted-foreground">{pathLabel}</p>
         </div>
       </header>
 
@@ -93,13 +101,15 @@ export default async function FileDetailPage({ params }: PageProps) {
             <CardDescription>Rendered from storage for image types.</CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- session cookie; avoid Image optimizer fetch without auth */}
-            <img
-              src={hrefForFileImage(file.id)}
-              alt={file.name}
-              className="max-h-[min(70vh,48rem)] w-full rounded-md border border-border object-contain bg-muted/40"
-              loading="lazy"
-            />
+            <div className="relative w-full">
+              <Image
+                src={`/photo/${file.r2ObjectKey}`}
+                alt={file.name}
+                className="max-h-[min(70vh,48rem)] w-full rounded-md border border-border object-contain bg-muted/40"
+                loading="lazy"
+                fill
+              />
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -117,9 +127,7 @@ export default async function FileDetailPage({ params }: PageProps) {
             </dd>
 
             <dt className="text-muted-foreground">Type</dt>
-            <dd className="break-all font-medium text-foreground">
-              {file.contentType ?? "—"}
-            </dd>
+            <dd className="break-all font-medium text-foreground">{file.contentType ?? "—"}</dd>
 
             <dt className="text-muted-foreground">Checksum</dt>
             <dd className="break-all font-mono text-xs text-foreground">
@@ -127,9 +135,7 @@ export default async function FileDetailPage({ params }: PageProps) {
             </dd>
 
             <dt className="text-muted-foreground">Storage key</dt>
-            <dd className="break-all font-mono text-xs text-foreground">
-              {file.r2ObjectKey}
-            </dd>
+            <dd className="break-all font-mono text-xs text-foreground">{file.r2ObjectKey}</dd>
 
             <dt className="text-muted-foreground">Created</dt>
             <dd className="text-foreground">{formatDate(file.createdAt)}</dd>
@@ -139,6 +145,29 @@ export default async function FileDetailPage({ params }: PageProps) {
           </dl>
         </CardContent>
       </Card>
+
+      {metadataEntries.length > 0 ? (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Embedded metadata</CardTitle>
+            <CardDescription>
+              Key–value fields saved for this file (e.g. camera / image properties).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid gap-4 text-sm sm:grid-cols-[minmax(8rem,auto)_1fr] sm:gap-x-6 sm:gap-y-3">
+              {metadataEntries.map(([key, value]) => (
+                <Fragment key={key}>
+                  <dt className="text-muted-foreground">{key}</dt>
+                  <dd className="break-words font-medium text-foreground">
+                    {formatMetadataValue(value)}
+                  </dd>
+                </Fragment>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

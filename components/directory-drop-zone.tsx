@@ -3,18 +3,15 @@
 import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
-  useCallback,
-  useRef,
-  useState,
   type ChangeEvent,
   type DragEvent,
   type ReactNode,
+  useCallback,
+  useRef,
+  useState,
 } from "react";
 
-import {
-  finalizeClientUpload,
-  prepareClientUpload,
-} from "@/app/actions/server/upload-file";
+import { finalizeClientUpload, prepareClientUpload } from "@/app/actions/server/upload-file";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +20,7 @@ type DirectoryDropZoneProps = {
   children: ReactNode;
 };
 
-export function DirectoryDropZone({
-  directoryId,
-  children,
-}: DirectoryDropZoneProps) {
+export function DirectoryDropZone({ directoryId, children }: DirectoryDropZoneProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(false);
@@ -134,6 +128,7 @@ export function DirectoryDropZone({
   );
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: whole-area drag target; file input + "Choose files" covers keyboard users
     <div
       className="relative"
       onDragEnter={onDragEnter}

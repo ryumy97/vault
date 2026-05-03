@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function RootSeedPrompt() {
   return (
@@ -13,8 +7,7 @@ export function RootSeedPrompt() {
         <CardHeader>
           <CardTitle>No root folder</CardTitle>
           <CardDescription>
-            Run migrations, then seed the <code className="font-mono text-xs">root</code>{" "}
-            directory.
+            Run migrations, then seed the <code className="font-mono text-xs">root</code> directory.
           </CardDescription>
         </CardHeader>
         <CardContent>

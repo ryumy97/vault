@@ -4,7 +4,7 @@ export {
   getBlobBytes,
   getBlobStream,
   headBlob,
+  type ListedBlob,
   listBlobs,
   putBlob,
-  type ListedBlob,
 } from "./objects";

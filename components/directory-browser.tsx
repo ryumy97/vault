@@ -16,12 +16,7 @@ type DirectoryBrowserProps = {
   backHref?: string;
 };
 
-export function DirectoryBrowser({
-  directory,
-  childDirs,
-  files,
-  backHref,
-}: DirectoryBrowserProps) {
+export function DirectoryBrowser({ directory, childDirs, files, backHref }: DirectoryBrowserProps) {
   const sortedDirs = [...childDirs].sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
   );
@@ -67,9 +62,7 @@ export function DirectoryBrowser({
               <CreateDirectoryForm parentId={directory.id} />
             </div>
             {sortedDirs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No folders in this directory.
-              </p>
+              <p className="text-sm text-muted-foreground">No folders in this directory.</p>
             ) : (
               <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
                 {sortedDirs.map((dir) => (
@@ -84,9 +77,7 @@ export function DirectoryBrowser({
               Files
             </h2>
             {sortedFiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No files in this directory.
-              </p>
+              <p className="text-sm text-muted-foreground">No files in this directory.</p>
             ) : (
               <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
                 {sortedFiles.map((file) => (

@@ -1,8 +1,8 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 
 import { renameDirectoryAction } from "@/app/actions/server/rename-directory";
 import { Button } from "@/components/ui/button";
@@ -31,24 +31,12 @@ type FieldsProps = {
   onSuccess: () => void;
 };
 
-function RenameDirectoryFields({
-  directory,
-  redirectAfter,
-  onSuccess,
-}: FieldsProps) {
-  const [state, formAction, pending] = useActionState(
-    renameDirectoryAction,
-    initialState,
-  );
+function RenameDirectoryFields({ directory, redirectAfter, onSuccess }: FieldsProps) {
+  const [state, formAction, pending] = useActionState(renameDirectoryAction, initialState);
   const wasPending = useRef(false);
 
   useEffect(() => {
-    if (
-      wasPending.current &&
-      !pending &&
-      state.error === null &&
-      !redirectAfter
-    ) {
+    if (wasPending.current && !pending && state.error === null && !redirectAfter) {
       onSuccess();
     }
     wasPending.current = pending;
@@ -57,9 +45,7 @@ function RenameDirectoryFields({
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="directoryId" value={directory.id} />
-      {redirectAfter ? (
-        <input type="hidden" name="redirectAfter" value="1" />
-      ) : null}
+      {redirectAfter ? <input type="hidden" name="redirectAfter" value="1" /> : null}
       <div className="flex flex-col gap-2">
         <label htmlFor={`rename-${directory.id}`} className="text-sm font-medium">
           New name
@@ -132,8 +118,8 @@ export function RenameDirectoryDialog({
         <DialogHeader>
           <DialogTitle>Rename folder</DialogTitle>
           <DialogDescription>
-            Path <code className="font-mono text-xs">{directory.path}</code>{" "}
-            updates for this folder and everything inside it.
+            Path <code className="font-mono text-xs">{directory.path}</code> updates for this folder
+            and everything inside it.
           </DialogDescription>
         </DialogHeader>
         <RenameDirectoryFields

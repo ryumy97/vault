@@ -29,10 +29,7 @@ function normalizedExtension(filename: string): string {
 }
 
 /** Whether we can show an inline image preview for this file. */
-export function isImageFile(
-  name: string,
-  contentType: string | null | undefined,
-): boolean {
+export function isImageFile(name: string, contentType: string | null | undefined): boolean {
   const ct = contentType?.toLowerCase().trim();
   if (ct?.startsWith("image/")) {
     return true;

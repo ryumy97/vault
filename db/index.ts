@@ -1,9 +1,9 @@
 import "server-only";
 
-// src/db.ts
-import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
+// src/db.ts
+import { drizzle } from "drizzle-orm/neon-http";
 
 import * as schema from "./schema";
 

@@ -13,10 +13,4 @@ const R2_BUCKET = requireEnv("R2_BUCKET");
 
 const IS_DEV = process.env.NODE_ENV === "development";
 
-export {
-  R2_ENDPOINT,
-  R2_ACCESS_KEY_ID,
-  R2_SECRET_ACCESS_KEY,
-  R2_BUCKET,
-  IS_DEV,
-};
+export { IS_DEV, R2_ACCESS_KEY_ID, R2_BUCKET, R2_ENDPOINT, R2_SECRET_ACCESS_KEY };

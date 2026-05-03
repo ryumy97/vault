@@ -1,6 +1,6 @@
 {
-  "id": "74c6daff-1d04-4ed0-be44-ec2a2589275d",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "a00d0136-8110-4ad3-bee0-fcf443739fed",
+  "prevId": "74c6daff-1d04-4ed0-be44-ec2a2589275d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -137,6 +137,12 @@
         "checksum_sha256": {
           "name": "checksum_sha256",
           "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

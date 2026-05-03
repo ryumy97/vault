@@ -28,29 +28,9 @@ const IMAGE_EXT = new Set([
   "avif",
 ]);
 
-const VIDEO_EXT = new Set([
-  "mp4",
-  "webm",
-  "mov",
-  "avi",
-  "mkv",
-  "m4v",
-  "wmv",
-  "mpeg",
-  "mpg",
-]);
+const VIDEO_EXT = new Set(["mp4", "webm", "mov", "avi", "mkv", "m4v", "wmv", "mpeg", "mpg"]);
 
-const AUDIO_EXT = new Set([
-  "mp3",
-  "wav",
-  "ogg",
-  "flac",
-  "m4a",
-  "aac",
-  "opus",
-  "wma",
-  "aiff",
-]);
+const AUDIO_EXT = new Set(["mp3", "wav", "ogg", "flac", "m4a", "aac", "opus", "wma", "aiff"]);
 
 const ARCHIVE_EXT = new Set([
   "zip",
@@ -109,16 +89,7 @@ const CODE_EXT = new Set([
 
 const DATA_EXT = new Set(["json", "yaml", "yml", "toml", "xml"]);
 
-const TEXT_EXT = new Set([
-  "txt",
-  "md",
-  "mdx",
-  "log",
-  "env",
-  "rst",
-  "tex",
-  "rtf",
-]);
+const TEXT_EXT = new Set(["txt", "md", "mdx", "log", "env", "rst", "tex", "rtf"]);
 
 const SHEET_EXT = new Set(["xls", "xlsx", "ods", "csv", "tsv", "numbers"]);
 
@@ -262,10 +233,5 @@ export function FileEntryIcon({ name, contentType, className }: FileEntryIconPro
 
   const { Icon, iconClass } = pick;
 
-  return (
-    <Icon
-      className={cn("size-4 shrink-0", iconClass, className)}
-      aria-hidden
-    />
-  );
+  return <Icon className={cn("size-4 shrink-0", iconClass, className)} aria-hidden />;
 }
