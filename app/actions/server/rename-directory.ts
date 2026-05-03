@@ -1,0 +1,64 @@
+"use server";
+
+import { redirect } from "next/navigation";
+
+import { renameDirectorySegment } from "@/db/actions";
+import { getSession } from "@/lib/auth/session";
+import { hrefForDirectoryPath } from "@/lib/directory-url";
+import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
+
+export type RenameDirectoryState = {
+  error: string | null;
+};
+
+export async function renameDirectoryAction(
+  _prev: RenameDirectoryState,
+  formData: FormData,
+): Promise<RenameDirectoryState> {
+  if (!(await getSession())) {
+    return { error: "Unauthorized." };
+  }
+
+  const directoryId = formData.get("directoryId")?.toString() ?? "";
+  const name = formData.get("name")?.toString() ?? "";
+  const redirectAfter = formData.get("redirectAfter") === "1";
+
+  if (!directoryId) {
+    return { error: "Missing folder." };
+  }
+
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { error: "Enter a name." };
+  }
+  if (trimmed === "." || trimmed === "..") {
+    return { error: "Invalid name." };
+  }
+  if (trimmed.includes("/") || trimmed.includes("\\")) {
+    return { error: "Name cannot contain slashes." };
+  }
+  if (trimmed.length > 255) {
+    return { error: "Name too long." };
+  }
+
+  const result = await renameDirectorySegment(directoryId, trimmed);
+  if (!result.ok) {
+    return { error: result.error };
+  }
+
+  for (const p of result.revalidateOldPaths) {
+    revalidateDirectoryListing(p);
+  }
+  for (const p of result.revalidateNewPaths) {
+    revalidateDirectoryListing(p);
+  }
+  if (result.parentPath !== null) {
+    revalidateDirectoryListing(result.parentPath);
+  }
+
+  if (redirectAfter) {
+    redirect(hrefForDirectoryPath(result.newPath));
+  }
+
+  return { error: null };
+}

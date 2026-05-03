@@ -1,6 +1,8 @@
 import "server-only";
 
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, like, or } from "drizzle-orm";
+
+import { parentDirectoryDbPath } from "@/lib/directory-url";
 
 import { db } from "./index";
 import {
@@ -94,6 +96,152 @@ export async function deleteDirectoryById(
     .returning();
 
   return row;
+}
+
+export type RenameDirectorySegmentResult =
+  | {
+      ok: true;
+      newPath: string;
+      revalidateOldPaths: string[];
+      revalidateNewPaths: string[];
+      parentPath: string | null;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Renames a folder segment and updates `path` for the folder and all descendants.
+ * Root (`path` `/`) only updates `name`.
+ */
+export async function renameDirectorySegment(
+  directoryId: string,
+  newSegment: string,
+): Promise<RenameDirectorySegmentResult> {
+  const trimmed = newSegment.trim();
+  if (!trimmed || trimmed === "." || trimmed === "..") {
+    return { ok: false, error: "Invalid name." };
+  }
+  if (trimmed.includes("/") || trimmed.includes("\\")) {
+    return { ok: false, error: "Name cannot contain slashes." };
+  }
+  if (trimmed.length > 255) {
+    return { ok: false, error: "Name too long." };
+  }
+
+  const dir = await getDirectoryById(directoryId);
+  if (!dir) {
+    return { ok: false, error: "Folder not found." };
+  }
+
+  if (dir.path === "/") {
+    if (trimmed === dir.name) {
+      return {
+        ok: true,
+        newPath: "/",
+        revalidateOldPaths: ["/"],
+        revalidateNewPaths: ["/"],
+        parentPath: null,
+      };
+    }
+    const roots = await listChildDirectories(null);
+    if (roots.some((r) => r.id !== dir.id && r.name === trimmed)) {
+      return {
+        ok: false,
+        error: "A folder with that name already exists here.",
+      };
+    }
+    await db
+      .update(directories)
+      .set({ name: trimmed, updatedAt: new Date() })
+      .where(eq(directories.id, directoryId));
+
+    return {
+      ok: true,
+      newPath: "/",
+      revalidateOldPaths: ["/"],
+      revalidateNewPaths: ["/"],
+      parentPath: null,
+    };
+  }
+
+  const oldPath = dir.path;
+  const parentPath = parentDirectoryDbPath(oldPath);
+  if (parentPath === null) {
+    return { ok: false, error: "Invalid folder path." };
+  }
+
+  const newPath =
+    parentPath === "/" ? `/${trimmed}` : `${parentPath}/${trimmed}`;
+
+  if (newPath === oldPath && trimmed === dir.name) {
+    return {
+      ok: true,
+      newPath,
+      revalidateOldPaths: [oldPath],
+      revalidateNewPaths: [newPath],
+      parentPath,
+    };
+  }
+
+  if (!dir.parentId) {
+    return { ok: false, error: "Invalid parent folder." };
+  }
+
+  const siblings = await listChildDirectories(dir.parentId);
+  if (siblings.some((s) => s.id !== dir.id && s.name === trimmed)) {
+    return {
+      ok: false,
+      error: "A folder with that name already exists here.",
+    };
+  }
+
+  const atPath = await getDirectoryByPath(newPath);
+  if (atPath && atPath.id !== dir.id) {
+    return { ok: false, error: "That path is already in use." };
+  }
+
+  const rows = await db
+    .select()
+    .from(directories)
+    .where(
+      or(eq(directories.path, oldPath), like(directories.path, `${oldPath}/%`)),
+    );
+
+  const sorted = [...rows].sort((a, b) => b.path.length - a.path.length);
+
+  const revalidateOldPaths = sorted.map((r) => r.path);
+  const revalidateNewPaths = sorted.map((r) =>
+    r.id === directoryId ? newPath : newPath + r.path.slice(oldPath.length),
+  );
+
+  for (const row of sorted) {
+    const nextPath =
+      row.id === directoryId
+        ? newPath
+        : newPath + row.path.slice(oldPath.length);
+    const patch: {
+      path: string;
+      name?: string;
+      updatedAt: Date;
+    } = {
+      path: nextPath,
+      updatedAt: new Date(),
+    };
+    if (row.id === directoryId) {
+      patch.name = trimmed;
+    }
+    await db
+      .update(directories)
+      .set(patch)
+      .where(eq(directories.id, row.id));
+  }
+
+  return {
+    ok: true,
+    newPath,
+    revalidateOldPaths,
+    revalidateNewPaths,
+    parentPath,
+  };
 }
 
 export async function createFile(

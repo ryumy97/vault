@@ -5,6 +5,7 @@ import { CreateDirectoryForm } from "@/components/create-directory-form";
 import { DirectoryDropZone } from "@/components/directory-drop-zone";
 import { DirectoryListItem } from "@/components/directory-list-item";
 import { FileListItem } from "@/components/file-list-item";
+import { RenameDirectoryDialog } from "@/components/rename-directory-dialog";
 import type { Directory, FileRecord } from "@/db/schema";
 
 type DirectoryBrowserProps = {
@@ -40,17 +41,20 @@ export function DirectoryBrowser({
         </Link>
       ) : null}
 
-      <header className="mb-8">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          Archive
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{directory.name}</span>
-          <span className="mx-1.5 text-muted-foreground/60">·</span>
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-            {directory.path}
-          </code>
-        </p>
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+            Archive
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{directory.name}</span>
+            <span className="mx-1.5 text-muted-foreground/60">·</span>
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+              {directory.path}
+            </code>
+          </p>
+        </div>
+        <RenameDirectoryDialog directory={directory} redirectAfter />
       </header>
 
       <DirectoryDropZone directoryId={directory.id}>
