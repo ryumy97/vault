@@ -1,11 +1,10 @@
-import { ArrowLeft, Folder } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { CreateDirectoryForm } from "@/components/create-directory-form";
 import { DirectoryDropZone } from "@/components/directory-drop-zone";
-import { FileEntryIcon } from "@/components/file-entry-icon";
-import { formatBytes } from "@/lib/format-bytes";
-import { hrefForDirectoryPath } from "@/lib/directory-url";
+import { DirectoryListItem } from "@/components/directory-list-item";
+import { FileListItem } from "@/components/file-list-item";
 import type { Directory, FileRecord } from "@/db/schema";
 
 type DirectoryBrowserProps = {
@@ -56,68 +55,42 @@ export function DirectoryBrowser({
 
       <DirectoryDropZone directoryId={directory.id}>
         <div className="space-y-8">
-        <section>
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Folders
-          </h2>
-          <div className="mb-4">
-            <CreateDirectoryForm parentId={directory.id} />
-          </div>
-          {sortedDirs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No folders in this directory.</p>
-          ) : (
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
-              {sortedDirs.map((dir) => (
-                <li key={dir.id} className="first:rounded-t-xl last:rounded-b-xl">
-                  <Link
-                    href={hrefForDirectoryPath(dir.path)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50"
-                  >
-                    <Folder
-                      className="size-4 shrink-0 text-amber-600 dark:text-amber-400"
-                      aria-hidden
-                    />
-                    <span className="min-w-0 truncate font-medium text-foreground">
-                      {dir.name}
-                    </span>
-                    <code className="ml-auto truncate font-mono text-xs text-muted-foreground">
-                      {dir.path}
-                    </code>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          <section>
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Folders
+            </h2>
+            <div className="mb-4">
+              <CreateDirectoryForm parentId={directory.id} />
+            </div>
+            {sortedDirs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No folders in this directory.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
+                {sortedDirs.map((dir) => (
+                  <DirectoryListItem key={dir.id} directory={dir} />
+                ))}
+              </ul>
+            )}
+          </section>
 
-        <section>
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Files
-          </h2>
-          {sortedFiles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No files in this directory.</p>
-          ) : (
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
-              {sortedFiles.map((file) => (
-                <li
-                  key={file.id}
-                  className="flex items-center gap-3 px-4 py-3 text-sm first:rounded-t-xl last:rounded-b-xl"
-                >
-                  <FileEntryIcon
-                    name={file.name}
-                    contentType={file.contentType}
-                  />
-                  <span className="min-w-0 truncate font-medium text-foreground">
-                    {file.name}
-                  </span>
-                  <span className="ml-auto shrink-0 tabular-nums text-xs text-muted-foreground">
-                    {formatBytes(file.sizeBytes)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          <section>
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Files
+            </h2>
+            {sortedFiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No files in this directory.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
+                {sortedFiles.map((file) => (
+                  <FileListItem key={file.id} file={file} />
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       </DirectoryDropZone>
     </div>
