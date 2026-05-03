@@ -1,8 +1,9 @@
-import { ArrowLeft, FileIcon, Folder } from "lucide-react";
+import { ArrowLeft, Folder } from "lucide-react";
 import Link from "next/link";
 
 import { CreateDirectoryForm } from "@/components/create-directory-form";
 import { DirectoryDropZone } from "@/components/directory-drop-zone";
+import { FileEntryIcon } from "@/components/file-entry-icon";
 import { formatBytes } from "@/lib/format-bytes";
 import { hrefForDirectoryPath } from "@/lib/directory-url";
 import type { Directory, FileRecord } from "@/db/schema";
@@ -102,9 +103,9 @@ export function DirectoryBrowser({
                   key={file.id}
                   className="flex items-center gap-3 px-4 py-3 text-sm first:rounded-t-xl last:rounded-b-xl"
                 >
-                  <FileIcon
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden
+                  <FileEntryIcon
+                    name={file.name}
+                    contentType={file.contentType}
                   />
                   <span className="min-w-0 truncate font-medium text-foreground">
                     {file.name}
