@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { DirectoryBrowser } from "@/components/directory-browser";
+import { DirectoryBrowser } from "@/components/directory/directory-browser";
 import { RootSeedPrompt } from "@/components/root-seed-prompt";
 import { getDirectoryByPath, listChildDirectories, listFilesInDirectory } from "@/db/actions";
 

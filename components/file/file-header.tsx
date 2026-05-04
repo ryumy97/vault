@@ -4,9 +4,9 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useState } from "react";
 
-import { DeleteFileDialog } from "@/components/delete-file-dialog";
-import { FileEntryIcon } from "@/components/file-entry-icon";
-import { RenameFileDialog } from "@/components/rename-file-dialog";
+import { DeleteFileDialog } from "@/components/file/delete-file-dialog";
+import { FileEntryIcon } from "@/components/file/file-entry-icon";
+import { RenameFileDialog } from "@/components/file/rename-file-dialog";
 import {
   Breadcrumb,
   BreadcrumbItem,

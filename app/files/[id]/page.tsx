@@ -1,27 +1,12 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Fragment } from "react";
-import { DeleteFileDialog } from "@/components/delete-file-dialog";
-import { FileEntryIcon } from "@/components/file-entry-icon";
-import ImagePreview from "@/components/image-preview";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { FileHeader } from "@/components/file/file-header";
+import ImagePreview from "@/components/file/image-preview";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDirectoryById, getFileById } from "@/db/actions";
-import { directoryBreadcrumbAncestors, hrefForDirectoryPath } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
 import { isImageFile } from "@/lib/is-image-file";
-import { RenameFileDialog } from "@/components/rename-file-dialog";
-import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
-import { FileHeader } from "@/components/file-header";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { Fragment } from "react";
 
 type PageProps = {
   params: Promise<{ id: string }>;

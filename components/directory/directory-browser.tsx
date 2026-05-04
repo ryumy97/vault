@@ -1,6 +1,6 @@
-import { CreateDirectoryForm } from "@/components/create-directory-form";
-import { DirectoryListItem } from "@/components/directory-list-item";
-import { FileListItem } from "@/components/file-list-item";
+import { CreateDirectoryForm } from "@/components/directory/create-directory-form";
+import { DirectoryListItem } from "@/components/directory/directory-list-item";
+import { FileListItem } from "@/components/file/file-list-item";
 import { FileInputButton, FolderInputButton, UploadProvider } from "@/components/upload-provider";
 import type { Directory, FileRecord } from "@/db/schema";
 import { DirectoryHeader } from "./directory-header";

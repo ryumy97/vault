@@ -4,8 +4,8 @@ import { Download, Folder, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "lu
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
-import { DeleteDirectoryDialog } from "@/components/delete-directory-dialog";
-import { RenameDirectoryDialog } from "@/components/rename-directory-dialog";
+import { DeleteDirectoryDialog } from "@/components/directory/delete-directory-dialog";
+import { RenameDirectoryDialog } from "@/components/directory/rename-directory-dialog";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,

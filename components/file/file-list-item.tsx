@@ -4,9 +4,9 @@ import { Download, FileText, MoreHorizontal, Pencil, Trash2 } from "lucide-react
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
-import { DeleteFileDialog } from "@/components/delete-file-dialog";
-import { FileEntryIcon } from "@/components/file-entry-icon";
-import { RenameFileDialog } from "@/components/rename-file-dialog";
+import { DeleteFileDialog } from "@/components/file/delete-file-dialog";
+import { FileEntryIcon } from "@/components/file/file-entry-icon";
+import { RenameFileDialog } from "@/components/file/rename-file-dialog";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,

@@ -25,9 +25,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "../ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarImage } from "../ui/avatar";
 
 type Props = {
   directory: Directory;
