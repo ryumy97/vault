@@ -18,17 +18,14 @@ import { getDirectoryById, getFileById } from "@/db/actions";
 import { directoryBreadcrumbAncestors, hrefForDirectoryPath } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
 import { isImageFile } from "@/lib/is-image-file";
+import { RenameFileDialog } from "@/components/rename-file-dialog";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
+import { FileHeader } from "@/components/file-header";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
-
-function logicalFilePath(parentPath: string, fileName: string): string {
-  if (parentPath === "/") {
-    return `/${fileName}`;
-  }
-  return `${parentPath}/${fileName}`;
-}
 
 function formatDate(d: Date): string {
   return d.toLocaleString(undefined, {
@@ -73,8 +70,6 @@ export default async function FileDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const pathLabel = logicalFilePath(parent.path, file.name);
-  const ancestors = directoryBreadcrumbAncestors(parent.path);
   const showImagePreview = isImageFile(file.name, file.contentType);
   const metadataEntries = file.metadata
     ? Object.entries(file.metadata)
@@ -83,49 +78,8 @@ export default async function FileDetailPage({ params }: PageProps) {
     : [];
 
   return (
-    <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href={hrefForDirectoryPath("/")}>Archive</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          {ancestors.map((a) => (
-            <Fragment key={a.dbPath}>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={hrefForDirectoryPath(a.dbPath)}>{a.label}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </Fragment>
-          ))}
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href={hrefForDirectoryPath(parent.path)}>{parent.name}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{file.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <header className="mb-8 flex flex-wrap items-start gap-4">
-        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
-          <FileEntryIcon name={file.name} contentType={file.contentType} className="size-10" />
-          <div className="min-w-0 flex-1">
-            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-              {file.name}
-            </h1>
-            <p className="mt-1 break-all font-mono text-sm text-muted-foreground">{pathLabel}</p>
-          </div>
-        </div>
-        <DeleteFileDialog fileId={file.id} fileName={file.name} />
-      </header>
+    <div className="mx-auto xl:my-6 w-full flex-1 px-6 py-6 xl:max-w-6xl xl:rounded-4xl bg-background">
+      <FileHeader file={file} parent={parent} />
 
       {showImagePreview ? (
         <Card className="mb-6 overflow-hidden">

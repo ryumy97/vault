@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { type ReactNode, useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useActionState, useCallback, useState } from "react";
 
-import { renameFileAction } from "@/app/actions/server/rename-file";
+import { renameFileAction, RenameFileState } from "@/app/actions/server/rename-file";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { FileRecord } from "@/db/schema";
+import { useRouter } from "next/navigation";
 
 const initialState: { error: string | null } = { error: null };
 
@@ -24,15 +24,17 @@ type RenameFileFieldsProps = {
 };
 
 function RenameFileFields({ file, onSuccess }: RenameFileFieldsProps) {
-  const [state, formAction, pending] = useActionState(renameFileAction, initialState);
-  const wasPending = useRef(false);
+  const [state, formAction, pending] = useActionState(
+    async (_prev: RenameFileState, formData: FormData) => {
+      const result = await renameFileAction(initialState, formData);
+      if (!result.error) {
+        onSuccess();
+      }
 
-  useEffect(() => {
-    if (wasPending.current && !pending && state.error === null) {
-      onSuccess();
-    }
-    wasPending.current = pending;
-  }, [pending, state.error, onSuccess]);
+      return result;
+    },
+    initialState,
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -87,6 +89,7 @@ export function RenameFileDialog({
   onOpenChange: controlledOnOpenChange,
 }: RenameFileDialogProps) {
   const router = useRouter();
+
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [instance, setInstance] = useState(0);
 

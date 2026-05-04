@@ -80,12 +80,6 @@ export function FileListItem({ file }: FileListItemProps) {
     <li
       className="first:rounded-t-xl last:rounded-b-xl cursor-auto bg-transparent px-4 py-3 text-left text-sm font-medium text-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50"
       onDoubleClick={open}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          open();
-        }
-      }}
     >
       <ContextMenu>
         <ContextMenuTrigger asChild>

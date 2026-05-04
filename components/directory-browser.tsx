@@ -35,9 +35,7 @@ export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrows
 
   return (
     <UploadProvider directoryId={directory.id}>
-      <div className="mx-auto w-full flex-1 px-6 py-6">
-        {/* Header */}
-
+      <div className="mx-auto xl:my-6 w-full flex-1 px-6 py-6 xl:max-w-6xl xl:rounded-4xl bg-background">
         <DirectoryHeader directory={directory} />
 
         <section>
