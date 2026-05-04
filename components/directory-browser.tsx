@@ -1,19 +1,26 @@
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { Fragment } from "react";
 
 import { CreateDirectoryForm } from "@/components/create-directory-form";
 import { DirectoryBrowserActions } from "@/components/directory-browser-actions";
 import { DirectoryDropZone } from "@/components/directory-drop-zone";
 import { DirectoryListItem } from "@/components/directory-list-item";
 import { FileListItem } from "@/components/file-list-item";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import type { Directory, FileRecord } from "@/db/schema";
+import { directoryBreadcrumbAncestors, hrefForDirectoryPath } from "@/lib/directory-url";
 
 type DirectoryBrowserProps = {
   directory: Directory;
   childDirs: Directory[];
   files: FileRecord[];
-  /** When set, shows a link above the title (e.g. parent folder). */
-  backHref?: string;
 };
 
 type MergedEntry = { type: "directory"; item: Directory } | { type: "file"; item: FileRecord };
@@ -34,21 +41,45 @@ function mergeDirectoryListing(childDirs: Directory[], fileRecords: FileRecord[]
   });
 }
 
-export function DirectoryBrowser({ directory, childDirs, files, backHref }: DirectoryBrowserProps) {
+export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrowserProps) {
   const merged = mergeDirectoryListing(childDirs, files);
   const isEmpty = merged.length === 0;
+  const ancestors = directoryBreadcrumbAncestors(directory.path);
+  const atRoot = directory.path === "/";
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-      {backHref ? (
-        <Link
-          href={backHref}
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4 shrink-0" aria-hidden />
-          Back
-        </Link>
-      ) : null}
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          {atRoot ? (
+            <BreadcrumbItem>
+              <BreadcrumbPage>Archive</BreadcrumbPage>
+            </BreadcrumbItem>
+          ) : (
+            <>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href={hrefForDirectoryPath("/")}>Archive</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {ancestors.map((a) => (
+                <Fragment key={a.dbPath}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href={hrefForDirectoryPath(a.dbPath)}>{a.label}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </Fragment>
+              ))}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{directory.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>

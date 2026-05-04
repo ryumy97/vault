@@ -1,4 +1,3 @@
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,9 +5,17 @@ import { Fragment } from "react";
 import { DeleteFileDialog } from "@/components/delete-file-dialog";
 import { FileEntryIcon } from "@/components/file-entry-icon";
 import ImagePreview from "@/components/image-preview";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDirectoryById, getFileById } from "@/db/actions";
-import { hrefForDirectoryPath } from "@/lib/directory-url";
+import { directoryBreadcrumbAncestors, hrefForDirectoryPath } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
 import { isImageFile } from "@/lib/is-image-file";
 
@@ -67,7 +74,7 @@ export default async function FileDetailPage({ params }: PageProps) {
   }
 
   const pathLabel = logicalFilePath(parent.path, file.name);
-  const backHref = hrefForDirectoryPath(parent.path);
+  const ancestors = directoryBreadcrumbAncestors(parent.path);
   const showImagePreview = isImageFile(file.name, file.contentType);
   const metadataEntries = file.metadata
     ? Object.entries(file.metadata)
@@ -77,13 +84,35 @@ export default async function FileDetailPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-      <Link
-        href={backHref}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4 shrink-0" aria-hidden />
-        Back to {parent.name}
-      </Link>
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={hrefForDirectoryPath("/")}>Archive</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          {ancestors.map((a) => (
+            <Fragment key={a.dbPath}>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href={hrefForDirectoryPath(a.dbPath)}>{a.label}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </Fragment>
+          ))}
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={hrefForDirectoryPath(parent.path)}>{parent.name}</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{file.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <header className="mb-8 flex flex-wrap items-start gap-4">
         <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">

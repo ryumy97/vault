@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { DirectoryBrowser } from "@/components/directory-browser";
 import { RootSeedPrompt } from "@/components/root-seed-prompt";
 import { getDirectoryByPath, listChildDirectories, listFilesInDirectory } from "@/db/actions";
-import { hrefForDirectoryPath, parentDirectoryDbPath } from "@/lib/directory-url";
 
 type PageProps = {
   params: Promise<{ path?: string[] }>;
@@ -34,15 +33,5 @@ export default async function DirectoryPathPage({ params }: PageProps) {
     listFilesInDirectory(directory.id),
   ]);
 
-  const parentPath = parentDirectoryDbPath(directory.path);
-  const backHref = parentPath === null ? undefined : hrefForDirectoryPath(parentPath);
-
-  return (
-    <DirectoryBrowser
-      directory={directory}
-      childDirs={childDirs}
-      files={fileRecords}
-      backHref={backHref}
-    />
-  );
+  return <DirectoryBrowser directory={directory} childDirs={childDirs} files={fileRecords} />;
 }

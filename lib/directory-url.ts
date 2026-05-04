@@ -26,6 +26,38 @@ export function hrefForDirectoryPath(dbPath: string): string {
   return `/dir${dbPath}`;
 }
 
+/** Segments for breadcrumb navigation under `/dir` (root is not included). */
+export type DirectoryBreadcrumbAncestor = {
+  dbPath: string;
+  /** Display label (path segment; matches folder name when in sync). */
+  label: string;
+};
+
+/**
+ * Ancestor folders from root to parent of `dbPath`, in order. Empty when `dbPath` is `/` or
+ * one segment (direct child of root).
+ */
+export function directoryBreadcrumbAncestors(dbPath: string): DirectoryBreadcrumbAncestor[] {
+  const normalized = dbPath.replace(/\/+$/, "") || "/";
+  if (normalized === "/") {
+    return [];
+  }
+  const parts = normalized.slice(1).split("/").filter(Boolean);
+  if (parts.length <= 1) {
+    return [];
+  }
+  const out: DirectoryBreadcrumbAncestor[] = [];
+  for (let i = 0; i < parts.length - 1; i++) {
+    const label = parts[i];
+    if (label === undefined) {
+      break;
+    }
+    const dbPathSeg = `/${parts.slice(0, i + 1).join("/")}`;
+    out.push({ dbPath: dbPathSeg, label });
+  }
+  return out;
+}
+
 /** Parent folder path, or `null` when `dbPath` is already root `/`. */
 export function parentDirectoryDbPath(dbPath: string): string | null {
   const normalized = dbPath.replace(/\/+$/, "") || "/";
