@@ -2,10 +2,10 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { CreateDirectoryForm } from "@/components/create-directory-form";
+import { DirectoryBrowserActions } from "@/components/directory-browser-actions";
 import { DirectoryDropZone } from "@/components/directory-drop-zone";
 import { DirectoryListItem } from "@/components/directory-list-item";
 import { FileListItem } from "@/components/file-list-item";
-import { RenameDirectoryDialog } from "@/components/rename-directory-dialog";
 import type { Directory, FileRecord } from "@/db/schema";
 
 type DirectoryBrowserProps = {
@@ -49,7 +49,7 @@ export function DirectoryBrowser({ directory, childDirs, files, backHref }: Dire
             </code>
           </p>
         </div>
-        <RenameDirectoryDialog directory={directory} redirectAfter />
+        <DirectoryBrowserActions directory={directory} />
       </header>
 
       <DirectoryDropZone directoryId={directory.id}>

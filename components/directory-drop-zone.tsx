@@ -402,11 +402,11 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
         ) : null}
       </div>
 
-      {uploadTasks.map((task) => (
-        <notificationTunnel.In key={task.id}>
-          <UploadProgressNotificationCard key={task.id} task={task} />
-        </notificationTunnel.In>
-      ))}
+      <notificationTunnel.In>
+        {uploadTasks.map((task, index) => (
+          <UploadProgressNotificationCard key={task.id} task={task} index={index} />
+        ))}
+      </notificationTunnel.In>
     </>
   );
 }

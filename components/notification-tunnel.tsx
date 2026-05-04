@@ -1,6 +1,7 @@
 "use client";
 
 import tunnel from "@/components/ui/tunnel";
+import { createContext, useContext, useState } from "react";
 
 /**
  * Singleton tunnel: render content with {@link notificationTunnel.In} anywhere in the tree;
@@ -17,17 +18,33 @@ import tunnel from "@/components/ui/tunnel";
  */
 export const notificationTunnel = tunnel();
 
+const NotificationTunnelContext = createContext<{
+  expand: boolean;
+  setExpand: (expand: boolean) => void;
+}>({
+  expand: false,
+  setExpand: () => {},
+});
+
+export function useNotificationTunnel() {
+  return useContext(NotificationTunnelContext);
+}
+
 /**
  * Mount once in the root layout (sibling to `children`) so tunneled notifications have a target.
  */
 export function NotificationTunnelOutlet() {
+  const [expand, setExpand] = useState(false);
+
   return (
-    <div
-      className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(100%-2rem,24rem)] flex-col gap-2 *:pointer-events-auto"
-      aria-live="polite"
-      aria-relevant="additions removals"
-    >
-      <notificationTunnel.Out />
-    </div>
+    <NotificationTunnelContext.Provider value={{ expand, setExpand }}>
+      <div
+        className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2 *:pointer-events-auto w-[min(100%-2rem,24rem)]"
+        aria-live="polite"
+        aria-relevant="additions removals"
+      >
+        <notificationTunnel.Out />
+      </div>
+    </NotificationTunnelContext.Provider>
   );
 }

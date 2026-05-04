@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { renameDirectorySegment } from "@/db/actions";
+import { getDirectoryById, renameDirectorySegment } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
 import { hrefForDirectoryPath } from "@/lib/directory-url";
 import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
@@ -25,6 +25,14 @@ export async function renameDirectoryAction(
 
   if (!directoryId) {
     return { error: "Missing folder." };
+  }
+
+  const target = await getDirectoryById(directoryId);
+  if (!target) {
+    return { error: "Folder not found." };
+  }
+  if (target.path === "/") {
+    return { error: "The archive root cannot be renamed." };
   }
 
   const trimmed = name.trim();

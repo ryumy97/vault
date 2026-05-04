@@ -59,12 +59,15 @@ type DeleteDirectoryDialogProps = {
   directory: Pick<Directory, "id" | "name" | "path">;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, navigate here after a successful delete (e.g. parent folder when deleting the page you are on). */
+  redirectHref?: string;
 };
 
 export function DeleteDirectoryDialog({
   directory,
   open,
   onOpenChange,
+  redirectHref,
 }: DeleteDirectoryDialogProps) {
   const router = useRouter();
   const [instance, setInstance] = useState(0);
@@ -78,8 +81,12 @@ export function DeleteDirectoryDialog({
 
   const handleDeleted = useCallback(() => {
     onOpenChange(false);
-    router.refresh();
-  }, [onOpenChange, router]);
+    if (redirectHref) {
+      router.push(redirectHref);
+    } else {
+      router.refresh();
+    }
+  }, [onOpenChange, redirectHref, router]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

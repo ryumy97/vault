@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { useNotificationTunnel } from "./notification-tunnel";
 
 export type UploadTaskStatus = "preparing" | "uploading" | "saving" | "done" | "error";
 
@@ -33,7 +34,15 @@ function statusDescription(task: UploadTask): string {
   }
 }
 
-export function UploadProgressNotificationCard({ task }: { task: UploadTask }) {
+export function UploadProgressNotificationCard({
+  task,
+  index,
+}: {
+  task: UploadTask;
+  index: number;
+}) {
+  const { expand, setExpand } = useNotificationTunnel();
+
   const pending =
     task.status === "preparing" || task.status === "uploading" || task.status === "saving";
 
@@ -50,10 +59,38 @@ export function UploadProgressNotificationCard({ task }: { task: UploadTask }) {
   return (
     <motion.div
       key={task.id}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: 0.3 }}
+      className="absolute bottom-0 right-0 object-top-left w-full"
+      initial={{ opacity: 0, x: "100%" }}
+      animate={
+        expand
+          ? {
+              y: 0,
+              x: 0,
+              scale: 1,
+              opacity: 1,
+            }
+          : {
+              y: -index * 24,
+              x: index * 24,
+              scale: 1 - index * 0.05,
+              opacity: Math.max(0, 1 - index / 10),
+            }
+      }
+      exit={{ opacity: 0, x: "100%" }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      style={
+        !expand
+          ? {
+              position: "absolute",
+              zIndex: 100 - index,
+            }
+          : {
+              position: "relative",
+              zIndex: 100 - index,
+            }
+      }
+      layout
+      onClick={() => setExpand(!expand)}
     >
       <Alert variant={variant} className="shadow-md">
         {icon}

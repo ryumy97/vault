@@ -33,9 +33,10 @@ function DirectoryRowMenuItems(props: {
   onRename: () => void;
   onDownload: () => void;
   onDelete: () => void;
+  canRename: boolean;
   variant: "context" | "dropdown";
 }) {
-  const { onOpen, onRename, onDownload, onDelete, variant } = props;
+  const { onOpen, onRename, onDownload, onDelete, canRename, variant } = props;
   const Item = variant === "context" ? ContextMenuItem : DropdownMenuItem;
   const Sep = variant === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
@@ -45,10 +46,12 @@ function DirectoryRowMenuItems(props: {
         <FolderOpen className="size-4" />
         Open
       </Item>
-      <Item onSelect={onRename}>
-        <Pencil className="size-4" />
-        Rename
-      </Item>
+      {canRename ? (
+        <Item onSelect={onRename}>
+          <Pencil className="size-4" />
+          Rename
+        </Item>
+      ) : null}
       <Item onSelect={onDownload}>
         <Download className="size-4" />
         Download
@@ -65,6 +68,7 @@ function DirectoryRowMenuItems(props: {
 export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
   const router = useRouter();
   const href = hrefForDirectoryPath(dir.path);
+  const canRename = dir.path !== "/";
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -121,6 +125,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
                     onRename={() => setRenameOpen(true)}
                     onDownload={downloadZip}
                     onDelete={() => setDeleteOpen(true)}
+                    canRename={canRename}
                     variant="dropdown"
                   />
                 </DropdownMenuContent>
@@ -134,17 +139,20 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
             onRename={() => setRenameOpen(true)}
             onDownload={downloadZip}
             onDelete={() => setDeleteOpen(true)}
+            canRename={canRename}
             variant="context"
           />
         </ContextMenuContent>
       </ContextMenu>
 
-      <RenameDirectoryDialog
-        directory={dir}
-        showDefaultTrigger={false}
-        open={renameOpen}
-        onOpenChange={setRenameOpen}
-      />
+      {canRename ? (
+        <RenameDirectoryDialog
+          directory={dir}
+          showDefaultTrigger={false}
+          open={renameOpen}
+          onOpenChange={setRenameOpen}
+        />
+      ) : null}
       <DeleteDirectoryDialog directory={dir} open={deleteOpen} onOpenChange={setDeleteOpen} />
     </li>
   );
