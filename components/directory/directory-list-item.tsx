@@ -2,7 +2,7 @@
 
 import { Download, Folder, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DeleteDirectoryDialog } from "@/components/directory/delete-directory-dialog";
 import { RenameDirectoryDialog } from "@/components/directory/rename-directory-dialog";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Directory } from "@/db/schema";
 import { hrefForDirectoryPath, hrefForDirectoryZipDownload } from "@/lib/directory-url";
+import { formatDisplayDate } from "@/lib/format-display-date";
 
 type DirectoryListItemProps = {
   directory: Directory;
@@ -72,6 +73,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [windowLoaded, setWindowLoaded] = useState(false);
 
   const open = useCallback(() => {
     router.push(href);
@@ -82,28 +84,42 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
     window.open(downloadZipHref, "_blank", "noopener,noreferrer");
   }, [downloadZipHref]);
 
+  useEffect(() => {
+    setWindowLoaded(true);
+  }, []);
+
   return (
-    <li
-      className="first:rounded-t-xl last:rounded-b-xl cursor-auto bg-transparent px-4 py-3 text-left text-sm font-medium text-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50"
-      onDoubleClick={open}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          open();
-        }
-      }}
-    >
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div className="flex items-center gap-0 w-full justify-between">
-            <div className="flex items-center gap-3">
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <tr
+          className="cursor-auto border-b border-border bg-transparent text-left text-foreground transition-colors outline-none last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50"
+          onDoubleClick={open}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              open();
+            }
+          }}
+          tabIndex={0}
+        >
+          <td className="px-4 py-3 align-middle">
+            <div className="flex min-w-0 items-center gap-3">
               <Folder className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-              <span className="min-w-0 truncate font-medium text-foreground">{dir.name}</span>
-              <code className="ml-auto min-w-0 truncate font-mono text-xs font-normal text-muted-foreground">
-                {dir.path}
-              </code>
+              <div className="min-w-0">
+                <div className="truncate font-medium text-foreground">{dir.name}</div>
+                <code className="mt-0.5 block truncate font-mono text-xs font-normal text-muted-foreground">
+                  {dir.path}
+                </code>
+              </div>
             </div>
-            <div className="shrink-0">
+          </td>
+          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground tabular-nums">
+            {windowLoaded && formatDisplayDate(dir.createdAt)}
+          </td>
+          <td className="px-4 py-3 align-middle text-muted-foreground">—</td>
+          <td className="px-4 py-3 align-middle text-right text-muted-foreground">—</td>
+          <td className="px-2 py-3 align-middle">
+            <div className="flex justify-end">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -131,19 +147,19 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="min-w-44">
-          <DirectoryRowMenuItems
-            onOpen={open}
-            onRename={() => setRenameOpen(true)}
-            onDownload={downloadZip}
-            onDelete={() => setDeleteOpen(true)}
-            canRename={canRename}
-            variant="context"
-          />
-        </ContextMenuContent>
-      </ContextMenu>
+          </td>
+        </tr>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-44">
+        <DirectoryRowMenuItems
+          onOpen={open}
+          onRename={() => setRenameOpen(true)}
+          onDownload={downloadZip}
+          onDelete={() => setDeleteOpen(true)}
+          canRename={canRename}
+          variant="context"
+        />
+      </ContextMenuContent>
 
       {canRename ? (
         <RenameDirectoryDialog
@@ -154,6 +170,6 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
         />
       ) : null}
       <DeleteDirectoryDialog directory={dir} open={deleteOpen} onOpenChange={setDeleteOpen} />
-    </li>
+    </ContextMenu>
   );
 }

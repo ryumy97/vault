@@ -2,7 +2,7 @@
 
 import { Download, FileText, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DeleteFileDialog } from "@/components/file/delete-file-dialog";
 import { FileEntryIcon } from "@/components/file/file-entry-icon";
@@ -25,6 +25,7 @@ import {
 import type { FileRecord } from "@/db/schema";
 import { hrefForFileDownload, hrefForFileId } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
+import { formatDisplayDate } from "@/lib/format-display-date";
 
 type FileListItemProps = {
   file: FileRecord;
@@ -71,67 +72,87 @@ export function FileListItem({ file }: FileListItemProps) {
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [windowLoaded, setWindowLoaded] = useState(false);
 
   const open = useCallback(() => {
     router.push(href);
   }, [router, href]);
 
+  useEffect(() => {
+    setWindowLoaded(true);
+  }, []);
+
   return (
-    <li
-      className="first:rounded-t-xl last:rounded-b-xl cursor-auto bg-transparent px-4 py-3 text-left text-sm font-medium text-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50"
-      onDoubleClick={open}
-    >
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div className="flex items-center gap-0 w-full justify-between">
-            <div className="flex items-center gap-3">
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <tr
+          className="cursor-auto border-b border-border bg-transparent text-left text-foreground transition-colors outline-none last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50"
+          onDoubleClick={open}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              open();
+            }
+          }}
+          tabIndex={0}
+        >
+          <td className="px-4 py-3 align-middle">
+            <div className="flex min-w-0 items-center gap-3">
               <FileEntryIcon name={file.name} contentType={file.contentType} />
               <span className="min-w-0 truncate font-medium text-foreground">{file.name}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="ml-auto shrink-0 tabular-nums text-xs font-normal text-muted-foreground">
-                {formatBytes(file.sizeBytes)}
-              </span>
-              <div className="shrink-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-muted-foreground hover:text-foreground cursor-pointer"
-                      aria-label={`Actions for ${file.name}`}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-44">
-                    <FileRowMenuItems
-                      onOpen={open}
-                      onRename={() => setRenameOpen(true)}
-                      onDelete={() => setDeleteOpen(true)}
-                      downloadHref={downloadHref}
-                      variant="dropdown"
-                    />
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+          </td>
+          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground tabular-nums">
+            {windowLoaded && formatDisplayDate(file.createdAt)}
+          </td>
+          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground tabular-nums">
+            {windowLoaded && file.sourceFileCreatedAt
+              ? formatDisplayDate(file.sourceFileCreatedAt)
+              : "—"}
+          </td>
+          <td className="px-4 py-3 align-middle text-right font-medium text-foreground tabular-nums whitespace-nowrap">
+            {formatBytes(file.sizeBytes)}
+          </td>
+          <td className="px-2 py-3 align-middle">
+            <div className="flex justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="cursor-pointer text-muted-foreground hover:text-foreground"
+                    aria-label={`Actions for ${file.name}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-44">
+                  <FileRowMenuItems
+                    onOpen={open}
+                    onRename={() => setRenameOpen(true)}
+                    onDelete={() => setDeleteOpen(true)}
+                    downloadHref={downloadHref}
+                    variant="dropdown"
+                  />
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="min-w-44">
-          <FileRowMenuItems
-            onOpen={open}
-            onRename={() => setRenameOpen(true)}
-            onDelete={() => setDeleteOpen(true)}
-            downloadHref={downloadHref}
-            variant="context"
-          />
-        </ContextMenuContent>
-      </ContextMenu>
+          </td>
+        </tr>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-44">
+        <FileRowMenuItems
+          onOpen={open}
+          onRename={() => setRenameOpen(true)}
+          onDelete={() => setDeleteOpen(true)}
+          downloadHref={downloadHref}
+          variant="context"
+        />
+      </ContextMenuContent>
 
       <RenameFileDialog
         file={file}
@@ -147,6 +168,6 @@ export function FileListItem({ file }: FileListItemProps) {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
       />
-    </li>
+    </ContextMenu>
   );
 }

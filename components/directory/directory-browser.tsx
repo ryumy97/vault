@@ -50,15 +50,50 @@ export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrows
           {isEmpty ? (
             <p className="text-sm text-muted-foreground">No folders or files in this directory.</p>
           ) : (
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card ring-1 ring-foreground/10">
-              {merged.map((entry) =>
-                entry.type === "directory" ? (
-                  <DirectoryListItem key={entry.item.id} directory={entry.item} />
-                ) : (
-                  <FileListItem key={entry.item.id} file={entry.item} />
-                ),
-              )}
-            </ul>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card ring-1 ring-foreground/10">
+              <table className="w-full min-w-[640px] caption-bottom text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                    <th
+                      scope="col"
+                      className="h-10 px-4 text-left text-xs font-medium uppercase tracking-wider"
+                    >
+                      Name
+                    </th>
+                    <th
+                      scope="col"
+                      className="h-10 px-4 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                    >
+                      Date created
+                    </th>
+                    <th
+                      scope="col"
+                      className="h-10 px-4 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                    >
+                      Source file created
+                    </th>
+                    <th
+                      scope="col"
+                      className="h-10 px-4 text-right text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                    >
+                      File size
+                    </th>
+                    <th scope="col" className="w-12 px-2">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {merged.map((entry) =>
+                    entry.type === "directory" ? (
+                      <DirectoryListItem key={entry.item.id} directory={entry.item} />
+                    ) : (
+                      <FileListItem key={entry.item.id} file={entry.item} />
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>
