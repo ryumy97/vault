@@ -153,15 +153,19 @@ function resolutionLine(data: Record<string, unknown>): string | undefined {
   return unitStr ? `${pair} ${unitStr}` : pair;
 }
 
+export type UploadFileExtraction = {
+  metadata: FileMetadataKv | undefined;
+  /** EXIF capture / original time when present (images only). */
+  sourceFileCreatedMs: number | null;
+};
+
 /**
- * Best-effort EXIF / ICC metadata for images, plus a capture-time instant when EXIF provides it.
+ * Best-effort EXIF / ICC metadata for images, plus EXIF-based capture time when present.
  * Safe to call on any `File`.
  */
-export async function extractUploadMetadata(
-  file: File,
-): Promise<FileMetadataKv | undefined> {
+export async function extractUploadMetadata(file: File): Promise<UploadFileExtraction> {
   if (!isImageFile(file.name, file.type)) {
-    return undefined;
+    return { metadata: undefined, sourceFileCreatedMs: null };
   }
 
   let data: Record<string, unknown>;
@@ -177,12 +181,16 @@ export async function extractUploadMetadata(
       mergeOutput: true,
     });
     if (!parsed || typeof parsed !== "object") {
-      return undefined;
+      return { metadata: undefined, sourceFileCreatedMs: null };
     }
     data = parsed as Record<string, unknown>;
   } catch {
-    return undefined;
+    return { metadata: undefined, sourceFileCreatedMs: null };
   }
+
+  const contentCreatedRaw =
+    data.DateTimeOriginal ?? data.CreateDate ?? data.DateCreated ?? data.DateTime;
+  const sourceFileCreatedMs = exifTimestampToMs(contentCreatedRaw);
 
   const meta: FileMetadataKv = {};
 
@@ -207,11 +215,7 @@ export async function extractUploadMetadata(
   }
 
   put(meta, "Colour space", data.ColorSpace);
-  put(
-    meta,
-    "Colour profile",
-    data.ProfileDescription ?? data.PreferredCMM ?? data.ProfileName,
-  );
+  put(meta, "Colour profile", data.ProfileDescription ?? data.PreferredCMM ?? data.ProfileName);
 
   put(meta, "Device make", data.Make);
   put(meta, "Device model", data.Model);
@@ -244,15 +248,12 @@ export async function extractUploadMetadata(
   put(meta, "White balance", data.WhiteBalance);
   put(meta, "Content Creator", data.Software ?? data.Artist);
 
-  const contentCreatedRaw =
-    data.DateTimeOriginal ??
-    data.CreateDate ??
-    data.DateCreated ??
-    data.DateTime;
-
   put(meta, "Content created", contentCreatedRaw);
 
   put(meta, "Modified", data.ModifyDate ?? data.ModifiedDate);
 
-  return Object.keys(meta).length > 0 ? meta : undefined;
+  return {
+    metadata: Object.keys(meta).length > 0 ? meta : undefined,
+    sourceFileCreatedMs,
+  };
 }

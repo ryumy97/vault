@@ -49,6 +49,7 @@ export function UploadProgressNotificationCard({ task }: { task: UploadTask }) {
 
   return (
     <motion.div
+      key={task.id}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
