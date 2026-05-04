@@ -18,8 +18,6 @@ import { IS_DEV } from "@/lib/env";
 import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 import { sanitizeFileMetadata } from "@/lib/sanitize-file-metadata";
 
-/** Single-object PUT limit for presigned uploads (raise if your R2 plan allows). */
-const MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
 const PRESIGNED_EXPIRES_SEC = 900;
 
 /** Milliseconds since epoch from `File.lastModified` or similar; rejects absurd values. */
@@ -118,12 +116,6 @@ export async function prepareClientUpload(
   }
   if (!Number.isFinite(byteSize) || byteSize < 0) {
     return { ok: false, error: "Invalid file size." };
-  }
-  if (byteSize > MAX_UPLOAD_BYTES) {
-    return {
-      ok: false,
-      error: `File too large (max ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB).`,
-    };
   }
 
   let rawName: string;
