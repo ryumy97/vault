@@ -1,21 +1,9 @@
-import Link from "next/link";
-import { Fragment } from "react";
-
 import { CreateDirectoryForm } from "@/components/create-directory-form";
-import { DirectoryBrowserActions } from "@/components/directory-browser-actions";
-import { DirectoryDropZone } from "@/components/directory-drop-zone";
 import { DirectoryListItem } from "@/components/directory-list-item";
 import { FileListItem } from "@/components/file-list-item";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { FileInputButton, FolderInputButton, UploadProvider } from "@/components/upload-provider";
 import type { Directory, FileRecord } from "@/db/schema";
-import { directoryBreadcrumbAncestors, hrefForDirectoryPath } from "@/lib/directory-url";
+import { DirectoryHeader } from "./directory-header";
 
 type DirectoryBrowserProps = {
   directory: Directory;
@@ -44,66 +32,22 @@ function mergeDirectoryListing(childDirs: Directory[], fileRecords: FileRecord[]
 export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrowserProps) {
   const merged = mergeDirectoryListing(childDirs, files);
   const isEmpty = merged.length === 0;
-  const ancestors = directoryBreadcrumbAncestors(directory.path);
-  const atRoot = directory.path === "/";
 
   return (
-    <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          {atRoot ? (
-            <BreadcrumbItem>
-              <BreadcrumbPage>Archive</BreadcrumbPage>
-            </BreadcrumbItem>
-          ) : (
-            <>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={hrefForDirectoryPath("/")}>Archive</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              {ancestors.map((a) => (
-                <Fragment key={a.dbPath}>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link href={hrefForDirectoryPath(a.dbPath)}>{a.label}</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                </Fragment>
-              ))}
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{directory.name}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          )}
-        </BreadcrumbList>
-      </Breadcrumb>
+    <UploadProvider directoryId={directory.id}>
+      <div className="mx-auto w-full flex-1 px-6 py-6">
+        {/* Header */}
 
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            Archive
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{directory.name}</span>
-            <span className="mx-1.5 text-muted-foreground/60">·</span>
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-              {directory.path}
-            </code>
-          </p>
-        </div>
-        <DirectoryBrowserActions directory={directory} />
-      </header>
+        <DirectoryHeader directory={directory} />
 
-      <DirectoryDropZone directoryId={directory.id}>
         <section>
           <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Contents
           </h2>
-          <div className="mb-4">
+          <div className="mb-4 flex gap-2">
             <CreateDirectoryForm parentId={directory.id} />
+            <FileInputButton />
+            <FolderInputButton />
           </div>
           {isEmpty ? (
             <p className="text-sm text-muted-foreground">No folders or files in this directory.</p>
@@ -119,7 +63,7 @@ export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrows
             </ul>
           )}
         </section>
-      </DirectoryDropZone>
-    </div>
+      </div>
+    </UploadProvider>
   );
 }

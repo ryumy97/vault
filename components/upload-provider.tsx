@@ -4,9 +4,11 @@ import { FolderUp, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   type ChangeEvent,
+  createContext,
   type DragEvent,
   type ReactNode,
   useCallback,
+  useContext,
   useRef,
   useState,
 } from "react";
@@ -49,7 +51,61 @@ type UploadJob = {
   label: string;
 };
 
-export function DirectoryDropZone({ directoryId, children }: DirectoryDropZoneProps) {
+const UploadContext = createContext<{
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
+  uploadTasks: UploadTask[];
+  setUploadTasks: (uploadTasks: UploadTask[]) => void;
+  onFileInputClick: () => void;
+  onFolderInputClick: () => void;
+}>({
+  busy: false,
+  setBusy: () => {},
+  uploadTasks: [],
+  setUploadTasks: () => {},
+  onFileInputClick: () => {},
+  onFolderInputClick: () => {},
+});
+
+const useUploadContext = () => {
+  return useContext(UploadContext);
+};
+
+export function FileInputButton() {
+  const { busy, onFileInputClick } = useUploadContext();
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="gap-1.5"
+      disabled={busy}
+      onClick={onFileInputClick}
+    >
+      <Upload className="size-4" aria-hidden />
+      {busy ? "Uploading…" : "Choose files"}
+    </Button>
+  );
+}
+
+export function FolderInputButton() {
+  const { busy, onFolderInputClick } = useUploadContext();
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="gap-1.5"
+      disabled={busy}
+      onClick={onFolderInputClick}
+    >
+      <FolderUp className="size-4" aria-hidden />
+      {busy ? "Uploading…" : "Choose folder"}
+    </Button>
+  );
+}
+
+export function UploadProvider({ directoryId, children }: DirectoryDropZoneProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -314,11 +370,21 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
     [uploadFolderFiles],
   );
 
+  const onFileInputClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const onFolderInputClick = useCallback(() => {
+    folderInputRef.current?.click();
+  }, []);
+
   return (
-    <>
+    <UploadContext.Provider
+      value={{ busy, setBusy, uploadTasks, setUploadTasks, onFileInputClick, onFolderInputClick }}
+    >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: whole-area drag target; file inputs cover uploads */}
       <div
-        className="relative"
+        className="relative min-h-screen"
         onDragEnter={onDragEnter}
         onDragLeave={onDragLeave}
         onDragOver={onDragOver}
@@ -346,49 +412,18 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
 
         <div
           className={cn(
-            "rounded-xl transition-[box-shadow,background-color] duration-150",
-            active && "bg-primary/5 ring-2 ring-primary ring-inset",
+            "absolute inset-0 rounded-xl transition-[box-shadow,background-color] duration-150 pointer-events-none",
+            active && "bg-primary/5 ring-2 ring-primary ring-inset pointer-events-auto",
           )}
-        >
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              Drag and drop files or a folder here, choose files, or upload an entire folder (same
-              structure as on your disk).
-            </p>
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={busy}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="size-4" aria-hidden />
-                {busy ? "Uploading…" : "Choose files"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={busy}
-                onClick={() => folderInputRef.current?.click()}
-              >
-                <FolderUp className="size-4" aria-hidden />
-                {busy ? "Uploading…" : "Choose folder"}
-              </Button>
-            </div>
-          </div>
+        ></div>
 
-          {error ? (
-            <p className="mb-4 text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
+        {error ? (
+          <p className="mb-4 text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
 
-          {children}
-        </div>
+        {children}
 
         {active ? (
           <div
@@ -407,6 +442,6 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
           <UploadProgressNotificationCard key={task.id} task={task} index={index} />
         ))}
       </notificationTunnel.In>
-    </>
+    </UploadContext.Provider>
   );
 }
