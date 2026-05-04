@@ -46,6 +46,7 @@ export const directories = pgTable(
  * File metadata; bytes live in R2 at `r2ObjectKey`.
  * - `name` is the basename within `directoryId`; full path is implicit (`directory.path` + `/` + `name`) and should match R2 layout if you mirror paths in keys.
  * - `metadata` stores optional key–value JSON (dimensions, camera, exposure, colour profile, etc.).
+ * - `sourceFileCreatedAt` / `sourceFileModifiedAt` come from the client `File` when uploading (e.g. OS mtimes), not DB row timestamps.
  */
 export const files = pgTable(
   "files",
@@ -60,6 +61,16 @@ export const files = pgTable(
     contentType: varchar("content_type", { length: 255 }),
     checksumSha256: varchar("checksum_sha256", { length: 64 }),
     metadata: jsonb("metadata").$type<FileMetadataKv | null>(),
+    /** From the uploaded `File` when the client supplies it (often unavailable in browsers). */
+    sourceFileCreatedAt: timestamp("source_file_created_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    /** From `File.lastModified` (OS last-write time) when uploading from the browser. */
+    sourceFileModifiedAt: timestamp("source_file_modified_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },

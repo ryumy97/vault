@@ -22,6 +22,24 @@ import { sanitizeFileMetadata } from "@/lib/sanitize-file-metadata";
 const MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
 const PRESIGNED_EXPIRES_SEC = 900;
 
+/** Milliseconds since epoch from `File.lastModified` or similar; rejects absurd values. */
+function parseSourceFileInstant(ms: number | null | undefined): Date | null {
+  if (ms == null || !Number.isFinite(ms)) {
+    return null;
+  }
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+  const t = d.getTime();
+  const min = Date.UTC(1970, 0, 1);
+  const max = Date.UTC(2100, 0, 1);
+  if (t < min || t > max) {
+    return null;
+  }
+  return d;
+}
+
 function sanitizeOriginalFileName(name: string): string {
   const base = name.replace(/\\/g, "/").split("/").pop() ?? "";
   const trimmed = base.trim();
@@ -60,10 +78,7 @@ function nextAvailableFileName(original: string, taken: Set<string>): string {
   }
 }
 
-function assertKeyMatchesFileName(
-  r2ObjectKey: string,
-  finalName: string,
-): boolean {
+function assertKeyMatchesFileName(r2ObjectKey: string, finalName: string): boolean {
   const parts = r2ObjectKey.split("/");
   if (parts.length < 3) {
     return false;
@@ -133,9 +148,7 @@ export async function prepareClientUpload(
   const objectId = randomUUID();
   const segment = IS_DEV ? "dev" : "upload";
   const r2ObjectKey = `${segment}/${objectId}/${finalName}`;
-  const resolvedType = (
-    contentType?.trim() || "application/octet-stream"
-  ).slice(0, 255);
+  const resolvedType = (contentType?.trim() || "application/octet-stream").slice(0, 255);
 
   const command = new PutObjectCommand({
     Bucket: getR2BucketName(),
@@ -164,9 +177,7 @@ export async function prepareClientUpload(
   };
 }
 
-export type FinalizeClientUploadResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type FinalizeClientUploadResult = { ok: true } | { ok: false; error: string };
 
 /** Verifies the object exists in R2 with the expected size, then inserts the `files` row. */
 export async function finalizeClientUpload(
@@ -176,6 +187,10 @@ export async function finalizeClientUpload(
   byteSize: number,
   contentType: string | undefined,
   metadata: FileMetadataKv | undefined,
+  /** OS / client “created” instant when available (standard `File` in browsers does not expose this). */
+  sourceFileCreatedMs: number | null | undefined,
+  /** From `File.lastModified` (last write time on the client). */
+  sourceFileModifiedMs: number | null | undefined,
 ): Promise<FinalizeClientUploadResult> {
   const safeMetadata = sanitizeFileMetadata(metadata);
   if (!(await getSession())) {
@@ -205,9 +220,10 @@ export async function finalizeClientUpload(
     return { ok: false, error: "Uploaded size does not match." };
   }
 
-  const resolvedContentType = (
-    contentType?.trim() || "application/octet-stream"
-  ).slice(0, 255);
+  const resolvedContentType = (contentType?.trim() || "application/octet-stream").slice(0, 255);
+
+  const sourceFileCreatedAt = parseSourceFileInstant(sourceFileCreatedMs);
+  const sourceFileModifiedAt = parseSourceFileInstant(sourceFileModifiedMs);
 
   try {
     await createFile({
@@ -217,6 +233,8 @@ export async function finalizeClientUpload(
       sizeBytes: BigInt(byteSize),
       contentType: resolvedContentType,
       metadata: safeMetadata ?? null,
+      sourceFileCreatedAt,
+      sourceFileModifiedAt,
     });
   } catch {
     return { ok: false, error: "Could not save file metadata." };

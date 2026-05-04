@@ -223,7 +223,16 @@ export async function renameDirectorySegment(
 
 export async function createFile(
   values: Pick<NewFileRecord, "directoryId" | "name" | "r2ObjectKey" | "sizeBytes"> &
-    Partial<Pick<NewFileRecord, "contentType" | "checksumSha256" | "metadata">>,
+    Partial<
+      Pick<
+        NewFileRecord,
+        | "contentType"
+        | "checksumSha256"
+        | "metadata"
+        | "sourceFileCreatedAt"
+        | "sourceFileModifiedAt"
+      >
+    >,
 ): Promise<FileRecord> {
   const [row] = await db
     .insert(files)
@@ -235,6 +244,8 @@ export async function createFile(
       contentType: values.contentType,
       checksumSha256: values.checksumSha256,
       metadata: values.metadata ?? null,
+      sourceFileCreatedAt: values.sourceFileCreatedAt ?? null,
+      sourceFileModifiedAt: values.sourceFileModifiedAt ?? null,
     })
     .returning();
 
@@ -289,6 +300,8 @@ export async function updateFile(
       | "contentType"
       | "checksumSha256"
       | "metadata"
+      | "sourceFileCreatedAt"
+      | "sourceFileModifiedAt"
     >
   >,
 ): Promise<FileRecord | undefined> {

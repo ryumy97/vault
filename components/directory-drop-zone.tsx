@@ -18,7 +18,7 @@ import {
   UploadProgressNotificationCard,
   type UploadTask,
 } from "@/components/upload-progress-notification";
-import { extractUploadMetadata } from "@/lib/extract-upload-metadata";
+import { exifTimestampToMs, extractUploadMetadata } from "@/lib/extract-upload-metadata";
 import { cn } from "@/lib/utils";
 
 type DirectoryDropZoneProps = {
@@ -80,7 +80,8 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
 
           patch({ status: "saving" });
 
-          const metadata = (await extractUploadMetadata(file)) ?? undefined;
+          const metadata = await extractUploadMetadata(file);
+          const sourceFileCreatedMs = exifTimestampToMs(metadata?.["Source file created"]);
           const fin = await finalizeClientUpload(
             directoryId,
             prep.r2ObjectKey,
@@ -88,6 +89,8 @@ export function DirectoryDropZone({ directoryId, children }: DirectoryDropZonePr
             file.size,
             file.type || undefined,
             metadata,
+            sourceFileCreatedMs || file.lastModified,
+            file.lastModified,
           );
           if (!fin.ok) {
             throw new Error(fin.error);

@@ -113,7 +113,12 @@ export default async function FileDetailPage({ params }: PageProps) {
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>
-          <CardDescription>Metadata stored for this file.</CardDescription>
+          <CardDescription>
+            Metadata stored for this file. “Original file modified” uses the browser’s{" "}
+            <code className="font-mono text-xs">File.lastModified</code> (usually the OS last-write
+            time). “Original file created” uses EXIF capture/original time when present (common for
+            photos); OS birth time is not available to web pages for arbitrary files.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 text-sm sm:grid-cols-[minmax(8rem,auto)_1fr] sm:gap-x-6 sm:gap-y-3">
@@ -133,11 +138,21 @@ export default async function FileDetailPage({ params }: PageProps) {
             <dt className="text-muted-foreground">Storage key</dt>
             <dd className="break-all font-mono text-xs text-foreground">{file.r2ObjectKey}</dd>
 
-            <dt className="text-muted-foreground">Created</dt>
+            <dt className="text-muted-foreground">Added to archive</dt>
             <dd className="text-foreground">{formatDate(file.createdAt)}</dd>
 
-            <dt className="text-muted-foreground">Updated</dt>
+            <dt className="text-muted-foreground">Record updated</dt>
             <dd className="text-foreground">{formatDate(file.updatedAt)}</dd>
+
+            <dt className="text-muted-foreground">Original file created</dt>
+            <dd className="text-foreground">
+              {file.sourceFileCreatedAt ? formatDate(file.sourceFileCreatedAt) : "—"}
+            </dd>
+
+            <dt className="text-muted-foreground">Original file modified</dt>
+            <dd className="text-foreground">
+              {file.sourceFileModifiedAt ? formatDate(file.sourceFileModifiedAt) : "—"}
+            </dd>
           </dl>
         </CardContent>
       </Card>

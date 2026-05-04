@@ -42,6 +42,38 @@ function num(x: unknown): number | undefined {
   return undefined;
 }
 
+/** EXIF / exifr “revived” date-like values → epoch ms for DB `source_file_created_at`. */
+export function exifTimestampToMs(value: unknown): number | null {
+  if (value == null) {
+    return null;
+  }
+  if (value instanceof Date) {
+    const t = value.getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+  if (
+    typeof value === "object" &&
+    "getTime" in value &&
+    typeof (value as { getTime: () => unknown }).getTime === "function"
+  ) {
+    const t = (value as { getTime: () => number }).getTime();
+    return Number.isFinite(t) && !Number.isNaN(t) ? t : null;
+  }
+  if (typeof value === "string") {
+    const d = new Date(value.trim());
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value > 1e12) {
+      return Math.round(value);
+    }
+    if (value > 1e9) {
+      return Math.round(value * 1000);
+    }
+  }
+  return null;
+}
+
 function formatExposureTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) {
     return String(seconds);
@@ -122,10 +154,12 @@ function resolutionLine(data: Record<string, unknown>): string | undefined {
 }
 
 /**
- * Best-effort EXIF / ICC / IPTC-style metadata for images. Safe to call on any `File`;
- * returns `undefined` for non-images or when parsing fails / finds nothing.
+ * Best-effort EXIF / ICC metadata for images, plus a capture-time instant when EXIF provides it.
+ * Safe to call on any `File`.
  */
-export async function extractUploadMetadata(file: File): Promise<FileMetadataKv | undefined> {
+export async function extractUploadMetadata(
+  file: File,
+): Promise<FileMetadataKv | undefined> {
   if (!isImageFile(file.name, file.type)) {
     return undefined;
   }
@@ -173,7 +207,11 @@ export async function extractUploadMetadata(file: File): Promise<FileMetadataKv 
   }
 
   put(meta, "Colour space", data.ColorSpace);
-  put(meta, "Colour profile", data.ProfileDescription ?? data.PreferredCMM ?? data.ProfileName);
+  put(
+    meta,
+    "Colour profile",
+    data.ProfileDescription ?? data.PreferredCMM ?? data.ProfileName,
+  );
 
   put(meta, "Device make", data.Make);
   put(meta, "Device model", data.Model);
@@ -206,9 +244,13 @@ export async function extractUploadMetadata(file: File): Promise<FileMetadataKv 
   put(meta, "White balance", data.WhiteBalance);
   put(meta, "Content Creator", data.Software ?? data.Artist);
 
-  const contentCreated =
-    data.DateTimeOriginal ?? data.CreateDate ?? data.DateCreated ?? data.DateTime;
-  put(meta, "Content created", contentCreated);
+  const contentCreatedRaw =
+    data.DateTimeOriginal ??
+    data.CreateDate ??
+    data.DateCreated ??
+    data.DateTime;
+
+  put(meta, "Content created", contentCreatedRaw);
 
   put(meta, "Modified", data.ModifyDate ?? data.ModifiedDate);
 
