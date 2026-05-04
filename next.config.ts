@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/photo/:path*",
-        destination: "https://bucket.ryumy.com//photo/:path*",
+        destination: "https://bucket.ryumy.com/photo/:path*",
       },
     ];
   },

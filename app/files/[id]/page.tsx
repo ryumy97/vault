@@ -1,11 +1,11 @@
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
 import { DeleteFileDialog } from "@/components/delete-file-dialog";
 import { FileEntryIcon } from "@/components/file-entry-icon";
+import ImagePreview from "@/components/image-preview";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDirectoryById, getFileById } from "@/db/actions";
 import { hrefForDirectoryPath } from "@/lib/directory-url";
@@ -105,15 +105,7 @@ export default async function FileDetailPage({ params }: PageProps) {
             <CardDescription>Rendered from storage for image types.</CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="relative w-full">
-              <Image
-                src={`/photo/${file.r2ObjectKey}`}
-                alt={file.name}
-                className="max-h-[min(70vh,48rem)] w-full rounded-md border border-border object-contain bg-muted/40"
-                loading="lazy"
-                fill
-              />
-            </div>
+            <ImagePreview file={file} />
           </CardContent>
         </Card>
       ) : null}
