@@ -39,6 +39,14 @@ export async function getDirectoryById(id: string): Promise<Directory | undefine
   return row;
 }
 
+export async function getDirectoriesByIds(ids: string[]): Promise<Directory[]> {
+  if (ids.length === 0) {
+    return [];
+  }
+
+  return db.select().from(directories).where(inArray(directories.id, ids));
+}
+
 export async function getDirectoryByPath(path: string): Promise<Directory | undefined> {
   const [row] = await db.select().from(directories).where(eq(directories.path, path)).limit(1);
 

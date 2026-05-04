@@ -13,6 +13,11 @@ export function hrefForFileDownload(fileId: string): string {
   return `/files/${fileId}/download`;
 }
 
+/** Authenticated GET route that streams a ZIP of this folder and all descendants. */
+export function hrefForDirectoryZipDownload(directoryId: string): string {
+  return `/api/directories/${directoryId}/zip`;
+}
+
 /** App Router href for a directory row (DB `path` is absolute, e.g. `/docs/a`). Root is `/dir`. */
 export function hrefForDirectoryPath(dbPath: string): string {
   if (dbPath === "/") {

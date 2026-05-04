@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Directory } from "@/db/schema";
-import { hrefForDirectoryPath } from "@/lib/directory-url";
+import { hrefForDirectoryPath, hrefForDirectoryZipDownload } from "@/lib/directory-url";
 
 type DirectoryListItemProps = {
   directory: Directory;
@@ -31,10 +31,11 @@ type DirectoryListItemProps = {
 function DirectoryRowMenuItems(props: {
   onOpen: () => void;
   onRename: () => void;
+  onDownload: () => void;
   onDelete: () => void;
   variant: "context" | "dropdown";
 }) {
-  const { onOpen, onRename, onDelete, variant } = props;
+  const { onOpen, onRename, onDownload, onDelete, variant } = props;
   const Item = variant === "context" ? ContextMenuItem : DropdownMenuItem;
   const Sep = variant === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
@@ -48,7 +49,7 @@ function DirectoryRowMenuItems(props: {
         <Pencil className="size-4" />
         Rename
       </Item>
-      <Item disabled title="Downloading a folder as one file is not supported yet.">
+      <Item onSelect={onDownload}>
         <Download className="size-4" />
         Download
       </Item>
@@ -71,6 +72,11 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
   const open = useCallback(() => {
     router.push(href);
   }, [router, href]);
+
+  const downloadZipHref = hrefForDirectoryZipDownload(dir.id);
+  const downloadZip = useCallback(() => {
+    window.open(downloadZipHref, "_blank", "noopener,noreferrer");
+  }, [downloadZipHref]);
 
   return (
     <li
@@ -113,6 +119,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
                   <DirectoryRowMenuItems
                     onOpen={open}
                     onRename={() => setRenameOpen(true)}
+                    onDownload={downloadZip}
                     onDelete={() => setDeleteOpen(true)}
                     variant="dropdown"
                   />
@@ -125,6 +132,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
           <DirectoryRowMenuItems
             onOpen={open}
             onRename={() => setRenameOpen(true)}
+            onDownload={downloadZip}
             onDelete={() => setDeleteOpen(true)}
             variant="context"
           />
