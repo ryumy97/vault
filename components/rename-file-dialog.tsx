@@ -1,10 +1,9 @@
 "use client";
 
-import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useActionState, useCallback, useEffect, useRef, useState } from "react";
 
-import { renameDirectoryAction } from "@/app/actions/server/rename-directory";
+import { renameFileAction } from "@/app/actions/server/rename-file";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,52 +14,40 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { Directory } from "@/db/schema";
+import type { FileRecord } from "@/db/schema";
 
 const initialState: { error: string | null } = { error: null };
 
-type RenameDirectoryDialogProps = {
-  directory: Pick<Directory, "id" | "name" | "path">;
-  /** Navigate to the new folder URL after rename (current folder in header). */
-  redirectAfter?: boolean;
-  /** When false, no pencil trigger is rendered (open via `open` / `onOpenChange`). */
-  showDefaultTrigger?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-};
-
-type FieldsProps = {
-  directory: Pick<Directory, "id" | "name" | "path">;
-  redirectAfter: boolean;
+type RenameFileFieldsProps = {
+  file: Pick<FileRecord, "id" | "name">;
   onSuccess: () => void;
 };
 
-function RenameDirectoryFields({ directory, redirectAfter, onSuccess }: FieldsProps) {
-  const [state, formAction, pending] = useActionState(renameDirectoryAction, initialState);
+function RenameFileFields({ file, onSuccess }: RenameFileFieldsProps) {
+  const [state, formAction, pending] = useActionState(renameFileAction, initialState);
   const wasPending = useRef(false);
 
   useEffect(() => {
-    if (wasPending.current && !pending && state.error === null && !redirectAfter) {
+    if (wasPending.current && !pending && state.error === null) {
       onSuccess();
     }
     wasPending.current = pending;
-  }, [pending, redirectAfter, state.error, onSuccess]);
+  }, [pending, state.error, onSuccess]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="directoryId" value={directory.id} />
-      {redirectAfter ? <input type="hidden" name="redirectAfter" value="1" /> : null}
+      <input type="hidden" name="fileId" value={file.id} />
       <div className="flex flex-col gap-2">
-        <label htmlFor={`rename-${directory.id}`} className="text-sm font-medium">
+        <label htmlFor={`rename-file-${file.id}`} className="text-sm font-medium">
           New name
         </label>
         <input
-          id={`rename-${directory.id}`}
+          id={`rename-file-${file.id}`}
           name="name"
           type="text"
           required
           autoComplete="off"
-          defaultValue={directory.name}
+          defaultValue={file.name}
           disabled={pending}
           className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
         />
@@ -84,13 +71,21 @@ function RenameDirectoryFields({ directory, redirectAfter, onSuccess }: FieldsPr
   );
 }
 
-export function RenameDirectoryDialog({
-  directory,
-  redirectAfter = false,
+type RenameFileDialogProps = {
+  file: Pick<FileRecord, "id" | "name">;
+  showDefaultTrigger?: boolean;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+export function RenameFileDialog({
+  file,
   showDefaultTrigger = true,
+  trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
-}: RenameDirectoryDialogProps) {
+}: RenameFileDialogProps) {
   const router = useRouter();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [instance, setInstance] = useState(0);
@@ -116,33 +111,22 @@ export function RenameDirectoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {showDefaultTrigger ? (
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
+      {!trigger && showDefaultTrigger ? (
         <DialogTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label={`Rename ${directory.name}`}
-          >
-            <Pencil className="size-4" />
+          <Button type="button" variant="outline" size="sm">
+            Rename
           </Button>
         </DialogTrigger>
       ) : null}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Rename folder</DialogTitle>
+          <DialogTitle>Rename file</DialogTitle>
           <DialogDescription>
-            Path <code className="font-mono text-xs">{directory.path}</code> updates for this folder
-            and everything inside it.
+            Updates how this file appears in the archive. The stored content is unchanged.
           </DialogDescription>
         </DialogHeader>
-        <RenameDirectoryFields
-          key={instance}
-          directory={directory}
-          redirectAfter={redirectAfter}
-          onSuccess={handleSuccess}
-        />
+        <RenameFileFields key={instance} file={file} onSuccess={handleSuccess} />
       </DialogContent>
     </Dialog>
   );

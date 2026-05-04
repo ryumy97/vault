@@ -22,6 +22,7 @@ export async function deleteFileAction(
   }
 
   const fileId = formData.get("fileId")?.toString().trim() ?? "";
+  const skipRedirect = formData.get("skipRedirect") === "1";
   if (!fileId) {
     return { error: "Missing file." };
   }
@@ -49,5 +50,10 @@ export async function deleteFileAction(
 
   revalidateDirectoryListing(parent.path);
   revalidatePath(`/files/${fileId}`);
-  redirect(hrefForDirectoryPath(parent.path));
+
+  if (!skipRedirect) {
+    redirect(hrefForDirectoryPath(parent.path));
+  }
+
+  return { error: null };
 }

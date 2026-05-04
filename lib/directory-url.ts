@@ -8,6 +8,11 @@ export function hrefForFileImage(fileId: string): string {
   return `/files/${fileId}/image`;
 }
 
+/** Authenticated GET route that streams file bytes with a download filename. */
+export function hrefForFileDownload(fileId: string): string {
+  return `/files/${fileId}/download`;
+}
+
 /** App Router href for a directory row (DB `path` is absolute, e.g. `/docs/a`). Root is `/dir`. */
 export function hrefForDirectoryPath(dbPath: string): string {
   if (dbPath === "/") {

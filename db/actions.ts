@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, isNull, like, or } from "drizzle-orm";
+import { eq, inArray, isNull, like, or } from "drizzle-orm";
 
 import { parentDirectoryDbPath } from "@/lib/directory-url";
 
@@ -251,6 +251,22 @@ export async function getFileByR2ObjectKey(r2ObjectKey: string): Promise<FileRec
 
 export async function listFilesInDirectory(directoryId: string): Promise<FileRecord[]> {
   return db.select().from(files).where(eq(files.directoryId, directoryId));
+}
+
+/** Files stored in this folder or any descendant folder (by DB path prefix). */
+export async function listFilesInDirectorySubtree(rootDir: Directory): Promise<FileRecord[]> {
+  const rootPath = rootDir.path;
+  const dirRows = await db
+    .select({ id: directories.id })
+    .from(directories)
+    .where(or(eq(directories.path, rootPath), like(directories.path, `${rootPath}/%`)));
+
+  const ids = dirRows.map((r) => r.id);
+  if (ids.length === 0) {
+    return [];
+  }
+
+  return db.select().from(files).where(inArray(files.directoryId, ids));
 }
 
 export async function updateFile(
