@@ -15,7 +15,7 @@ import {
 } from "./schema";
 
 export async function createDirectory(
-  values: Pick<NewDirectory, "parentId" | "name" | "path">,
+  values: Pick<NewDirectory, "parentId" | "name" | "path"> & Partial<Pick<NewDirectory, "tags">>,
 ): Promise<Directory> {
   const [row] = await db
     .insert(directories)
@@ -23,6 +23,7 @@ export async function createDirectory(
       parentId: values.parentId,
       name: values.name,
       path: values.path,
+      tags: values.tags ?? [],
     })
     .returning();
 
@@ -63,7 +64,7 @@ export async function listChildDirectories(parentId: string | null): Promise<Dir
 
 export async function updateDirectory(
   id: string,
-  patch: Partial<Pick<NewDirectory, "name" | "parentId" | "path">>,
+  patch: Partial<Pick<NewDirectory, "name" | "parentId" | "path" | "tags">>,
 ): Promise<Directory | undefined> {
   if (Object.keys(patch).length === 0) {
     return getDirectoryById(id);
@@ -229,6 +230,7 @@ export async function createFile(
         | "contentType"
         | "checksumSha256"
         | "metadata"
+        | "tags"
         | "sourceFileCreatedAt"
         | "sourceFileModifiedAt"
       >
@@ -244,6 +246,7 @@ export async function createFile(
       contentType: values.contentType,
       checksumSha256: values.checksumSha256,
       metadata: values.metadata ?? null,
+      tags: values.tags ?? [],
       sourceFileCreatedAt: values.sourceFileCreatedAt ?? null,
       sourceFileModifiedAt: values.sourceFileModifiedAt ?? null,
     })
@@ -300,6 +303,7 @@ export async function updateFile(
       | "contentType"
       | "checksumSha256"
       | "metadata"
+      | "tags"
       | "sourceFileCreatedAt"
       | "sourceFileModifiedAt"
     >

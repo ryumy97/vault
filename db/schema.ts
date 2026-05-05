@@ -4,6 +4,7 @@ import {
   index,
   jsonb,
   pgTable,
+  text,
   timestamp,
   unique,
   uuid,
@@ -15,6 +16,7 @@ import {
  * Values are JSON-serializable; prefer strings for display-oriented fields.
  */
 export type FileMetadataKv = Record<string, string | number | boolean | null>;
+export type ItemTags = string[];
 
 /**
  * Folder tree. Store one logical root row (e.g. parentId null, path `/`) via migration or app bootstrap.
@@ -28,6 +30,7 @@ export const directories = pgTable(
     parentId: uuid("parent_id"),
     name: varchar("name", { length: 255 }).notNull(),
     path: varchar("path", { length: 2048 }).notNull().unique(),
+    tags: text("tags").array().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
@@ -61,6 +64,7 @@ export const files = pgTable(
     contentType: varchar("content_type", { length: 255 }),
     checksumSha256: varchar("checksum_sha256", { length: 64 }),
     metadata: jsonb("metadata").$type<FileMetadataKv | null>(),
+    tags: text("tags").array().notNull().default([]),
     /** From the uploaded `File` when the client supplies it (often unavailable in browsers). */
     sourceFileCreatedAt: timestamp("source_file_created_at", {
       withTimezone: true,

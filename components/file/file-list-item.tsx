@@ -26,6 +26,8 @@ import type { FileRecord } from "@/db/schema";
 import { hrefForFileDownload, hrefForFileId } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
 import { formatDisplayDate } from "@/lib/format-display-date";
+import { tagToneClass } from "@/lib/tags";
+import { cn } from "@/lib/utils";
 
 type FileListItemProps = {
   file: FileRecord;
@@ -99,7 +101,26 @@ export function FileListItem({ file }: FileListItemProps) {
           <td className="px-4 py-3 align-middle">
             <div className="flex min-w-0 items-center gap-3">
               <FileEntryIcon name={file.name} contentType={file.contentType} />
-              <span className="min-w-0 truncate font-medium text-foreground">{file.name}</span>
+              <div className="min-w-0">
+                <span className="block min-w-0 truncate font-medium text-foreground">
+                  {file.name}
+                </span>
+                {file.tags.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {file.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                          tagToneClass(tag),
+                        )}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </td>
           <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground tabular-nums">

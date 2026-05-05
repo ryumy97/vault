@@ -24,6 +24,8 @@ import {
 import type { Directory } from "@/db/schema";
 import { hrefForDirectoryPath, hrefForDirectoryZipDownload } from "@/lib/directory-url";
 import { formatDisplayDate } from "@/lib/format-display-date";
+import { tagToneClass } from "@/lib/tags";
+import { cn } from "@/lib/utils";
 
 type DirectoryListItemProps = {
   directory: Directory;
@@ -110,6 +112,21 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
                 <code className="mt-0.5 block truncate font-mono text-xs font-normal text-muted-foreground">
                   {dir.path}
                 </code>
+                {dir.tags.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {dir.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                          tagToneClass(tag),
+                        )}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           </td>

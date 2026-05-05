@@ -46,6 +46,14 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-tag-red: var(--tag-red);
+  --color-tag-orange: var(--tag-orange);
+  --color-tag-yellow: var(--tag-yellow);
+  --color-tag-green: var(--tag-green);
+  --color-tag-blue: var(--tag-blue);
+  --color-tag-purple: var(--tag-purple);
+  --color-tag-grey: var(--tag-grey);
 }
 
 :root {
@@ -81,6 +89,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  --tag-red: #ff756d;
+  --tag-orange: #ffba54;
+  --tag-yellow: #ffe659;
+  --tag-green: #6fe87b;
+  --tag-blue: #53a5ff;
+  --tag-purple: #d884ff;
+  --tag-grey: #b5b5b8;
 }
 
 .dark {

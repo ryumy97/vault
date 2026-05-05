@@ -16,11 +16,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { Directory } from "@/db/schema";
+import { tagsToInput } from "@/lib/tags";
 
 const initialState: { error: string | null } = { error: null };
 
 type RenameDirectoryDialogProps = {
-  directory: Pick<Directory, "id" | "name" | "path">;
+  directory: Pick<Directory, "id" | "name" | "path" | "tags">;
   /** Navigate to the new folder URL after rename (current folder in header). */
   redirectAfter?: boolean;
   /** When false, no pencil trigger is rendered (open via `open` / `onOpenChange`). */
@@ -30,7 +31,7 @@ type RenameDirectoryDialogProps = {
 };
 
 type FieldsProps = {
-  directory: Pick<Directory, "id" | "name" | "path">;
+  directory: Pick<Directory, "id" | "name" | "path" | "tags">;
   redirectAfter: boolean;
   onSuccess: () => void;
 };
@@ -62,6 +63,21 @@ function RenameDirectoryFields({ directory, redirectAfter, onSuccess }: FieldsPr
           autoComplete="off"
           defaultValue={directory.name}
           disabled={pending}
+          className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label htmlFor={`rename-tags-${directory.id}`} className="text-sm font-medium">
+          Tags (comma-separated)
+        </label>
+        <input
+          id={`rename-tags-${directory.id}`}
+          name="tags"
+          type="text"
+          autoComplete="off"
+          defaultValue={tagsToInput(directory.tags)}
+          disabled={pending}
+          placeholder="blue, receipts, personal"
           className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
         />
       </div>

@@ -1,8 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { type ReactNode, useActionState, useCallback, useState } from "react";
-
-import { renameFileAction, RenameFileState } from "@/app/actions/server/rename-file";
+import { type RenameFileState, renameFileAction } from "@/app/actions/server/rename-file";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +14,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { FileRecord } from "@/db/schema";
-import { useRouter } from "next/navigation";
 
 const initialState: { error: string | null } = { error: null };
 
