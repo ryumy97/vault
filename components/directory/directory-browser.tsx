@@ -1,6 +1,5 @@
 import { CreateDirectoryForm } from "@/components/directory/create-directory-form";
-import { DirectoryListItem } from "@/components/directory/directory-list-item";
-import { FileListItem } from "@/components/file/file-list-item";
+import { DirectoryContentsTable } from "@/components/directory/directory-contents-table";
 import { FileInputButton, FolderInputButton, UploadProvider } from "@/components/upload-provider";
 import type { Directory, FileRecord } from "@/db/schema";
 import { DirectoryHeader } from "./directory-header";
@@ -11,27 +10,8 @@ type DirectoryBrowserProps = {
   files: FileRecord[];
 };
 
-type MergedEntry = { type: "directory"; item: Directory } | { type: "file"; item: FileRecord };
-
-function mergeDirectoryListing(childDirs: Directory[], fileRecords: FileRecord[]): MergedEntry[] {
-  return [
-    ...childDirs.map((item) => ({ type: "directory" as const, item })),
-    ...fileRecords.map((item) => ({ type: "file" as const, item })),
-  ].sort((a, b) => {
-    const cmp = a.item.name.localeCompare(b.item.name, undefined, { sensitivity: "base" });
-    if (cmp !== 0) {
-      return cmp;
-    }
-    if (a.type === b.type) {
-      return 0;
-    }
-    return a.type === "directory" ? -1 : 1;
-  });
-}
-
 export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrowserProps) {
-  const merged = mergeDirectoryListing(childDirs, files);
-  const isEmpty = merged.length === 0;
+  const isEmpty = childDirs.length === 0 && files.length === 0;
 
   return (
     <UploadProvider directoryId={directory.id}>
@@ -50,50 +30,7 @@ export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrows
           {isEmpty ? (
             <p className="text-sm text-muted-foreground">No folders or files in this directory.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border bg-card ring-1 ring-foreground/10">
-              <table className="w-full min-w-[640px] caption-bottom text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40 text-muted-foreground">
-                    <th
-                      scope="col"
-                      className="h-10 px-4 text-left text-xs font-medium uppercase tracking-wider"
-                    >
-                      Name
-                    </th>
-                    <th
-                      scope="col"
-                      className="h-10 px-4 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
-                    >
-                      Date created
-                    </th>
-                    <th
-                      scope="col"
-                      className="h-10 px-4 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
-                    >
-                      Source file created
-                    </th>
-                    <th
-                      scope="col"
-                      className="h-10 px-4 text-right text-xs font-medium uppercase tracking-wider whitespace-nowrap"
-                    >
-                      File size
-                    </th>
-                    <th scope="col" className="w-12 px-2">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {merged.map((entry) =>
-                    entry.type === "directory" ? (
-                      <DirectoryListItem key={entry.item.id} directory={entry.item} />
-                    ) : (
-                      <FileListItem key={entry.item.id} file={entry.item} />
-                    ),
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DirectoryContentsTable childDirs={childDirs} files={files} />
           )}
         </section>
       </div>
