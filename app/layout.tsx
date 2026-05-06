@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Archive",
+  title: "Vault",
   description: "File vault",
 };
 
