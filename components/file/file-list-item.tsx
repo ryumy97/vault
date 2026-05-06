@@ -26,7 +26,7 @@ import type { FileRecord } from "@/db/schema";
 import { hrefForFileDownload, hrefForFileId } from "@/lib/directory-url";
 import { formatBytes } from "@/lib/format-bytes";
 import { formatDisplayDate } from "@/lib/format-display-date";
-import { tagToneClass } from "@/lib/tags";
+import { isPresetTag, tagSort, tagToneClass } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 
 type FileListItemProps = {
@@ -106,18 +106,29 @@ export function FileListItem({ file }: FileListItemProps) {
                   {file.name}
                 </span>
                 {file.tags.length > 0 ? (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {file.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                          tagToneClass(tag),
-                        )}
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                  <div className="mt-1.5 flex flex-wrap gap-1 items-center justify-start">
+                    {file.tags.sort(tagSort).map((tag) => {
+                      if (isPresetTag(tag)) {
+                        return (
+                          <span
+                            key={tag}
+                            className={cn("rounded-full w-3 h-3", tagToneClass(tag))}
+                          ></span>
+                        );
+                      }
+
+                      return (
+                        <span
+                          key={tag}
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                            tagToneClass(tag),
+                          )}
+                        >
+                          {tag}
+                        </span>
+                      );
+                    })}
                   </div>
                 ) : null}
               </div>

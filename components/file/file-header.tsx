@@ -1,10 +1,5 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Pencil } from "lucide-react";
-import { motion } from "motion/react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Fragment, useMemo, useRef, useState, useTransition } from "react";
 import { updateFileTagsAction } from "@/app/actions/server/update-file-tags";
 import { DeleteFileDialog } from "@/components/file/delete-file-dialog";
 import { FileEntryIcon } from "@/components/file/file-entry-icon";
@@ -22,8 +17,13 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Directory, FileRecord } from "@/db";
 import { directoryBreadcrumbAncestors, hrefForDirectoryPath } from "@/lib/directory-url";
-import { PRESET_TAGS, tagToneClass } from "@/lib/tags";
+import { isPresetTag, PRESET_TAGS, tagToneClass } from "@/lib/tags";
 import { cn } from "@/lib/utils";
+import { AlertCircle, CheckCircle2, Pencil } from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Fragment, useMemo, useRef, useState, useTransition } from "react";
 import { Badge } from "../ui/badge";
 
 export function FileHeader({ file, parent }: { file: FileRecord; parent: Directory }) {
@@ -31,18 +31,14 @@ export function FileHeader({ file, parent }: { file: FileRecord; parent: Directo
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const colorSet = useMemo(() => new Set(PRESET_TAGS), []);
-  const initialNonColorTags = useMemo(
-    () => file.tags.filter((t) => !colorSet.has(t.toLowerCase() as (typeof PRESET_TAGS)[number])),
-    [colorSet, file.tags],
-  );
+  const initialNonColorTags = useMemo(() => file.tags.filter((t) => !isPresetTag(t)), [file.tags]);
 
   const [newTag, setNewTag] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
   const [addTagOpen, setAddTagOpen] = useState(false);
   const [nonColorTags, setNonColorTags] = useState<string[]>(initialNonColorTags);
   const [selectedColorTags, setSelectedColorTags] = useState<string[]>(
-    file.tags.filter((t) => colorSet.has(t.toLowerCase() as (typeof PRESET_TAGS)[number])),
+    file.tags.filter((t) => isPresetTag(t)),
   );
   const [notifications, setNotifications] = useState<
     Array<{ id: string; title: string; description: string; variant: "default" | "destructive" }>

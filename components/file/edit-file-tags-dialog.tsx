@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useMemo, useState } from "react";
 import {
   type UpdateFileTagsState,
   updateFileTagsAction,
@@ -18,8 +16,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { FileRecord } from "@/db/schema";
-import { normalizeTags, PRESET_TAGS, tagToneClass } from "@/lib/tags";
+import { isPresetTag, normalizeTags, PRESET_TAGS, tagToneClass } from "@/lib/tags";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useActionState, useCallback, useMemo, useState } from "react";
 
 const initialState: UpdateFileTagsState = { error: null };
 
@@ -33,11 +33,7 @@ function EditFileTagsFields({ file, onSuccess }: EditFileTagsFieldsProps) {
   const [newTag, setNewTag] = useState("");
   const tagsCsv = useMemo(() => tags.join(", "), [tags]);
 
-  const colorSet = useMemo(() => new Set(PRESET_TAGS), []);
-  const nonColorTags = useMemo(
-    () => tags.filter((t) => !colorSet.has(t.toLowerCase() as (typeof PRESET_TAGS)[number])),
-    [colorSet, tags],
-  );
+  const nonColorTags = useMemo(() => tags.filter((t) => !isPresetTag(t)), [tags]);
 
   const [state, formAction, pending] = useActionState(
     async (_prev: UpdateFileTagsState, formData: FormData) => {

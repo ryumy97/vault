@@ -8,6 +8,8 @@ export const PRESET_TAGS = [
   "grey",
 ] as const;
 
+export const PRESET_TAGS_SET = new Set(PRESET_TAGS);
+
 export function normalizeTags(input: string[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -37,6 +39,29 @@ export function parseTagsInput(value: string): string[] {
 
 export function tagsToInput(tags: string[] | null | undefined): string {
   return (tags ?? []).join(", ");
+}
+
+export function isPresetTag(tag: string): boolean {
+  return PRESET_TAGS_SET.has(tag.toLowerCase() as (typeof PRESET_TAGS)[number]);
+}
+
+export function tagSort(a: string, b: string): number {
+  if (isPresetTag(a) && isPresetTag(b)) {
+    return (
+      PRESET_TAGS.findIndex((t) => t.toLowerCase() === a.toLowerCase()) -
+      PRESET_TAGS.findIndex((t) => t.toLowerCase() === b.toLowerCase())
+    );
+  }
+
+  if (isPresetTag(a)) {
+    return -1;
+  }
+
+  if (isPresetTag(b)) {
+    return 1;
+  }
+
+  return a.localeCompare(b);
 }
 
 export function tagToneClass(tag: string): string {
