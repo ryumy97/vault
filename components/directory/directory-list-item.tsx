@@ -104,6 +104,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
           }}
           tabIndex={0}
         >
+          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground">—</td>
           <td className="px-4 py-3 align-middle">
             <div className="flex min-w-0 items-center gap-3">
               <Folder className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { FileRecord } from "@/db/schema";
 import { hrefForFileDownload, hrefForFileId } from "@/lib/directory-url";
+import { fileTypeGroupLabelForName } from "@/lib/file-type-groups";
 import { formatBytes } from "@/lib/format-bytes";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { isPresetTag, tagSort, tagToneClass } from "@/lib/tags";
@@ -98,6 +99,9 @@ export function FileListItem({ file }: FileListItemProps) {
           }}
           tabIndex={0}
         >
+          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground">
+            {fileTypeGroupLabelForName(file.name) ?? "Other"}
+          </td>
           <td className="px-4 py-3 align-middle">
             <div className="flex min-w-0 items-center gap-3">
               <FileEntryIcon name={file.name} contentType={file.contentType} />

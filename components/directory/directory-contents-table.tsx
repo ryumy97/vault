@@ -1,5 +1,9 @@
 "use client";
 
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { type ReactNode, useMemo, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { DirectoryListItem } from "@/components/directory/directory-list-item";
 import { FileListItem } from "@/components/file/file-list-item";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,19 +15,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Directory, FileRecord } from "@/db/schema";
+import { fileNameExtension } from "@/lib/file-name-extension";
+import { FILE_TYPE_GROUPS, fileMatchesTypeGroup, isFileTypeGroupId } from "@/lib/file-type-groups";
 import { normalizeTags, PRESET_TAGS, tagToneClass } from "@/lib/tags";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode, useMemo, useState } from "react";
-import type { DateRange } from "react-day-picker";
 
 type MergedEntry = { type: "directory"; item: Directory } | { type: "file"; item: FileRecord };
 
-type SortKey = "name" | "createdAt" | "sourceFileCreated" | "size";
+type SortKey = "type" | "name" | "createdAt" | "sourceFileCreated" | "size";
 type SortDir = "asc" | "desc";
-type TypeFilter = "all" | "directories" | "files";
 type DateRangeFilter = "all" | "today" | "last7" | "last30" | "thisYear" | "lastYear" | "custom";
+
+const TYPE_FILTER_ALL = "all";
+const TYPE_FILTER_DIRECTORIES = "directories";
+const TYPE_GROUP_PREFIX = "group:";
+
+function entryMatchesTypeFilter(entry: MergedEntry, typeFilter: string): boolean {
+  if (typeFilter === TYPE_FILTER_ALL) {
+    return true;
+  }
+  if (typeFilter === TYPE_FILTER_DIRECTORIES) {
+    return entry.type === "directory";
+  }
+  if (!typeFilter.startsWith(TYPE_GROUP_PREFIX)) {
+    return true;
+  }
+  const groupId = typeFilter.slice(TYPE_GROUP_PREFIX.length);
+  if (!isFileTypeGroupId(groupId)) {
+    return true;
+  }
+  if (entry.type !== "file") {
+    return false;
+  }
+  return fileMatchesTypeGroup(entry.item.name, groupId);
+}
 
 function mergeEntries(childDirs: Directory[], fileRecords: FileRecord[]): MergedEntry[] {
   return [
@@ -50,6 +75,23 @@ function compareEntries(a: MergedEntry, b: MergedEntry, sortBy: SortKey, sortDir
   let skipDir = false;
 
   switch (sortBy) {
+    case "type": {
+      const rank = (e: MergedEntry) => (e.type === "directory" ? 0 : 1);
+      const kindCmp = rank(a) - rank(b);
+      if (kindCmp !== 0) {
+        cmp = kindCmp;
+        break;
+      }
+      const extSortKey = (e: MergedEntry) => {
+        if (e.type === "directory") {
+          return "";
+        }
+        const ext = fileNameExtension(e.item.name);
+        return ext === "" ? "\uffff" : ext;
+      };
+      cmp = extSortKey(a).localeCompare(extSortKey(b), undefined, { sensitivity: "base" });
+      break;
+    }
     case "name":
       cmp = a.item.name.localeCompare(b.item.name, undefined, { sensitivity: "base" });
       break;
@@ -202,7 +244,7 @@ function SortableTh({
       scope="col"
       aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
       className={cn(
-        "h-10 px-4 text-xs font-medium uppercase tracking-wider text-muted-foreground",
+        "h-10 px-4 text-xs font-medium uppercase tracking-wider text-muted-foreground text-left",
         align === "right" && "text-right",
       )}
     >
@@ -230,7 +272,7 @@ function SortableTh({
 export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTableProps) {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [typeFilter, setTypeFilter] = useState(TYPE_FILTER_ALL);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
@@ -240,10 +282,7 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
     const base = mergeEntries(childDirs, files);
     const { start, end } = computeDateRange(dateRangeFilter, customStartDate, customEndDate);
     const filtered = base.filter((entry) => {
-      if (typeFilter === "directories" && entry.type !== "directory") {
-        return false;
-      }
-      if (typeFilter === "files" && entry.type !== "file") {
+      if (!entryMatchesTypeFilter(entry, typeFilter)) {
         return false;
       }
       const createdAtMs = entry.item.createdAt.getTime();
@@ -303,7 +342,7 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
   };
 
   const clearFilters = () => {
-    setTypeFilter("all");
+    setTypeFilter(TYPE_FILTER_ALL);
     setDateRangeFilter("all");
     setCustomStartDate("");
     setCustomEndDate("");
@@ -316,14 +355,18 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
         <div className="flex flex-wrap items-end">
           <div className="flex min-w-40 flex-col gap-1 text-xs text-muted-foreground mr-3">
             <span>Type</span>
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="h-9 w-full min-w-40 bg-background text-sm text-foreground">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="directories">Folders only</SelectItem>
-                <SelectItem value="files">Files only</SelectItem>
+                <SelectItem value={TYPE_FILTER_ALL}>All</SelectItem>
+                <SelectItem value={TYPE_FILTER_DIRECTORIES}>Folders</SelectItem>
+                {FILE_TYPE_GROUPS.map(({ id, label }) => (
+                  <SelectItem key={id} value={`${TYPE_GROUP_PREFIX}${id}`}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -428,6 +471,9 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
         <table className="w-full min-w-[640px] caption-bottom text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
+              <SortableTh sortKey="type" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
+                Type
+              </SortableTh>
               <SortableTh sortKey="name" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
                 Name
               </SortableTh>
