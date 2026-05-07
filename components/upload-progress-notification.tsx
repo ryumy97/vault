@@ -17,6 +17,11 @@ export type UploadTask = {
   error?: string;
 };
 
+export type UploadBatchNotification = {
+  id: string;
+  label: string;
+};
+
 function statusDescription(task: UploadTask): string {
   switch (task.status) {
     case "preparing":
@@ -115,6 +120,60 @@ export function UploadProgressNotificationCard({
             </div>
           ) : null}
         </AlertDescription>
+      </Alert>
+    </motion.div>
+  );
+}
+
+export function UploadBatchNotificationCard({
+  notification,
+  index,
+}: {
+  notification: UploadBatchNotification;
+  index: number;
+}) {
+  const { expand, setExpand } = useNotificationTunnel();
+
+  return (
+    <motion.div
+      key={notification.id}
+      className="absolute bottom-0 right-0 object-top-left w-full"
+      initial={{ opacity: 0, x: "100%" }}
+      animate={
+        expand
+          ? {
+              y: 0,
+              x: 0,
+              scale: 1,
+              opacity: 1,
+            }
+          : {
+              y: -index * 24,
+              x: index * 24,
+              scale: 1 - index * 0.05,
+              opacity: Math.max(0, 1 - index / 10),
+            }
+      }
+      exit={{ opacity: 0, x: "100%" }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      style={
+        !expand
+          ? {
+              position: "absolute",
+              zIndex: 100 - index,
+            }
+          : {
+              position: "relative",
+              zIndex: 100 - index,
+            }
+      }
+      layout
+      onClick={() => setExpand(!expand)}
+    >
+      <Alert className="shadow-md">
+        <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+        <AlertTitle>{notification.label}</AlertTitle>
+        <AlertDescription>Upload is in progress…</AlertDescription>
       </Alert>
     </motion.div>
   );

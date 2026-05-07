@@ -18,7 +18,9 @@ import { finalizeClientUpload, prepareClientUpload } from "@/app/actions/server/
 import { notificationTunnel } from "@/components/notification-tunnel";
 import { Button } from "@/components/ui/button";
 import {
+  UploadBatchNotificationCard,
   UploadProgressNotificationCard,
+  type UploadBatchNotification,
   type UploadTask,
 } from "@/components/upload-progress-notification";
 import {
@@ -113,6 +115,23 @@ export function UploadProvider({ directoryId, children }: DirectoryDropZoneProps
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
+  const [uploadBatchNotifications, setUploadBatchNotifications] = useState<
+    UploadBatchNotification[]
+  >([]);
+
+  console.log(uploadBatchNotifications);
+
+  const addUploadBatchNotification = useCallback((label: string) => {
+    const id = crypto.randomUUID();
+    console.log("addUploadBatchNotification", id, label);
+    setUploadBatchNotifications((prev) => [...prev, { id, label }]);
+    return id;
+  }, []);
+
+  const removeUploadBatchNotification = useCallback((id: string) => {
+    console.log("removeUploadBatchNotification", id);
+    setUploadBatchNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   const uploadOneJob = useCallback(async (job: UploadJob) => {
     const { targetDirectoryId, file, label } = job;
@@ -195,63 +214,84 @@ export function UploadProvider({ directoryId, children }: DirectoryDropZoneProps
 
   const uploadFlatFiles = useCallback(
     async (files: File[]) => {
+      console.log("uploadFlatFiles", files);
+
       const list = files.filter((f) => f.name && f.size >= 0 && isUploadableFileName(f.name));
       if (!list.length) {
         return;
       }
+      const batchId = addUploadBatchNotification(
+        list.length === 1 ? "Uploading file" : `Uploading ${list.length} files`,
+      );
       const jobs: UploadJob[] = list.map((file) => ({
         targetDirectoryId: directoryId,
         file,
         label: file.name,
       }));
-      await runJobs(jobs);
+      try {
+        await runJobs(jobs);
+      } finally {
+        removeUploadBatchNotification(batchId);
+      }
     },
-    [directoryId, runJobs],
+    [addUploadBatchNotification, directoryId, removeUploadBatchNotification, runJobs],
   );
 
   const uploadFolderFiles = useCallback(
     async (files: File[]) => {
+      console.log("uploadFolderFiles", files);
+
       const list = files.filter((f) => f.name && f.size >= 0 && isUploadableFileName(f.name));
       if (!list.length) {
         return;
       }
+      const batchId = addUploadBatchNotification(
+        list.length === 1 ? "Uploading folder file" : `Uploading ${list.length} folder files`,
+      );
       if (list.length > MAX_FOLDER_FILES) {
         setError(`This folder has too many files (max ${MAX_FOLDER_FILES}).`);
+        removeUploadBatchNotification(batchId);
         return;
       }
 
-      const jobs: UploadJob[] = [];
-      for (const file of list) {
-        const wkp = file.webkitRelativePath?.trim();
-        if (!wkp) {
-          setError("Could not read folder structure for one or more files.");
-          return;
+      try {
+        const jobs: UploadJob[] = [];
+        for (const file of list) {
+          const wkp = file.webkitRelativePath?.trim();
+          if (!wkp) {
+            setError("Could not read folder structure for one or more files.");
+            return;
+          }
+          const parsed = parseFolderFileRelativePath(wkp);
+          if (!parsed) {
+            setError(`Invalid path in folder upload: ${wkp}`);
+            return;
+          }
+          const relativeDir = parsed.dirSegments.join("/");
+          const ensured = await ensureDirectoryPathFromRoot(directoryId, relativeDir);
+          if (!ensured.ok) {
+            setError(ensured.error);
+            return;
+          }
+          jobs.push({
+            targetDirectoryId: ensured.directoryId,
+            file,
+            label: wkp,
+          });
         }
-        const parsed = parseFolderFileRelativePath(wkp);
-        if (!parsed) {
-          setError(`Invalid path in folder upload: ${wkp}`);
-          return;
-        }
-        const relativeDir = parsed.dirSegments.join("/");
-        const ensured = await ensureDirectoryPathFromRoot(directoryId, relativeDir);
-        if (!ensured.ok) {
-          setError(ensured.error);
-          return;
-        }
-        jobs.push({
-          targetDirectoryId: ensured.directoryId,
-          file,
-          label: wkp,
-        });
-      }
 
-      await runJobs(jobs);
+        await runJobs(jobs);
+      } finally {
+        removeUploadBatchNotification(batchId);
+      }
     },
-    [directoryId, runJobs],
+    [addUploadBatchNotification, directoryId, removeUploadBatchNotification, runJobs],
   );
 
   const uploadDroppedFolderEntries = useCallback(
     async (entries: FileSystemDirectoryEntry[]) => {
+      console.log("uploadDroppedFolderEntries", entries);
+
       const collected: Array<{ relativePath: string; file: File }> = [];
       for (const root of entries) {
         collected.push(...(await collectFilesFromDroppedDirectory(root)));
@@ -264,30 +304,39 @@ export function UploadProvider({ directoryId, children }: DirectoryDropZoneProps
       if (!visible.length) {
         return;
       }
+      const batchId = addUploadBatchNotification(
+        visible.length === 1
+          ? "Uploading dropped folder file"
+          : `Uploading ${visible.length} dropped folder files`,
+      );
 
-      const jobs: UploadJob[] = [];
-      for (const { relativePath, file } of visible) {
-        const parsed = parseFolderFileRelativePath(relativePath);
-        if (!parsed) {
-          setError(`Invalid path in folder upload: ${relativePath}`);
-          return;
+      try {
+        const jobs: UploadJob[] = [];
+        for (const { relativePath, file } of visible) {
+          const parsed = parseFolderFileRelativePath(relativePath);
+          if (!parsed) {
+            setError(`Invalid path in folder upload: ${relativePath}`);
+            return;
+          }
+          const relativeDir = parsed.dirSegments.join("/");
+          const ensured = await ensureDirectoryPathFromRoot(directoryId, relativeDir);
+          if (!ensured.ok) {
+            setError(ensured.error);
+            return;
+          }
+          jobs.push({
+            targetDirectoryId: ensured.directoryId,
+            file,
+            label: relativePath,
+          });
         }
-        const relativeDir = parsed.dirSegments.join("/");
-        const ensured = await ensureDirectoryPathFromRoot(directoryId, relativeDir);
-        if (!ensured.ok) {
-          setError(ensured.error);
-          return;
-        }
-        jobs.push({
-          targetDirectoryId: ensured.directoryId,
-          file,
-          label: relativePath,
-        });
+
+        await runJobs(jobs);
+      } finally {
+        removeUploadBatchNotification(batchId);
       }
-
-      await runJobs(jobs);
     },
-    [directoryId, runJobs],
+    [addUploadBatchNotification, directoryId, removeUploadBatchNotification, runJobs],
   );
 
   const onDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -438,8 +487,19 @@ export function UploadProvider({ directoryId, children }: DirectoryDropZoneProps
       </div>
 
       <notificationTunnel.In>
+        {uploadBatchNotifications.map((notification, index) => (
+          <UploadBatchNotificationCard
+            key={notification.id}
+            notification={notification}
+            index={index}
+          />
+        ))}
         {uploadTasks.map((task, index) => (
-          <UploadProgressNotificationCard key={task.id} task={task} index={index} />
+          <UploadProgressNotificationCard
+            key={task.id}
+            task={task}
+            index={index + uploadBatchNotifications.length}
+          />
         ))}
       </notificationTunnel.In>
     </UploadContext.Provider>
