@@ -321,6 +321,20 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
     return { from, to };
   }, [customEndDate, customStartDate]);
 
+  const viewCounts = useMemo(() => {
+    return merged.reduce(
+      (acc, entry) => {
+        if (entry.type === "directory") {
+          acc.folders += 1;
+        } else {
+          acc.files += 1;
+        }
+        return acc;
+      },
+      { folders: 0, files: 0 },
+    );
+  }, [merged]);
+
   const onSort = (key: SortKey) => {
     if (sortBy === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -466,6 +480,11 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
           </div>
         </div>
       </div>
+
+      <p className="px-1 text-xs text-muted-foreground">
+        {viewCounts.folders} {viewCounts.folders === 1 ? "folder" : "folders"} and {viewCounts.files}{" "}
+        {viewCounts.files === 1 ? "file" : "files"} in view
+      </p>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card ring-1 ring-foreground/10">
         <table className="w-full min-w-[640px] caption-bottom text-sm">
