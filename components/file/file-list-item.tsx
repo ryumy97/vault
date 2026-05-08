@@ -88,21 +88,15 @@ export function FileListItem({ file }: FileListItemProps) {
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <tr
-          className="cursor-auto border-b border-border bg-transparent text-left text-foreground transition-colors outline-none last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50"
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: row supports double-click to open */}
+        <div
+          className="cursor-auto border-b border-border bg-transparent text-left text-foreground transition-colors outline-none last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50 grid grid-cols-subgrid col-span-full"
           onDoubleClick={open}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              open();
-            }
-          }}
-          tabIndex={0}
         >
-          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground">
+          <div className="px-4 py-3 whitespace-nowrap text-muted-foreground flex items-center">
             {fileTypeGroupLabelForName(file.name) ?? "Other"}
-          </td>
-          <td className="px-4 py-3 align-middle">
+          </div>
+          <div className="px-4 py-3 flex items-center">
             <div className="flex min-w-0 items-center gap-3">
               <FileEntryIcon name={file.name} contentType={file.contentType} />
               <div className="min-w-0">
@@ -137,19 +131,19 @@ export function FileListItem({ file }: FileListItemProps) {
                 ) : null}
               </div>
             </div>
-          </td>
-          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground tabular-nums">
+          </div>
+          <div className="px-4 py-3 whitespace-nowrap text-muted-foreground tabular-nums flex items-center">
             {windowLoaded && formatDisplayDate(file.createdAt)}
-          </td>
-          <td className="px-4 py-3 align-middle whitespace-nowrap text-muted-foreground tabular-nums">
+          </div>
+          <div className="px-4 py-3 whitespace-nowrap text-muted-foreground tabular-nums flex items-center">
             {windowLoaded && file.sourceFileCreatedAt
               ? formatDisplayDate(file.sourceFileCreatedAt)
               : "—"}
-          </td>
-          <td className="px-4 py-3 align-middle text-right font-medium text-foreground tabular-nums whitespace-nowrap">
+          </div>
+          <div className="px-4 py-3 text-right font-medium text-foreground tabular-nums whitespace-nowrap flex items-center justify-end">
             {formatBytes(file.sizeBytes)}
-          </td>
-          <td className="px-2 py-3 align-middle">
+          </div>
+          <div className="px-2 py-3 flex items-center">
             <div className="flex justify-end">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -177,8 +171,8 @@ export function FileListItem({ file }: FileListItemProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </td>
-        </tr>
+          </div>
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="min-w-44">
         <FileRowMenuItems

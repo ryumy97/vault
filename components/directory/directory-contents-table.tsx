@@ -1,10 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, GridIcon, ListIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
+import { setDirectoryViewModeAction } from "@/app/actions/server/set-directory-view-mode";
 import { DirectoryListItem } from "@/components/directory/directory-list-item";
+import { DirectoryGridItem } from "@/components/directory/directory-grid-item";
+import { FileGridItem } from "@/components/file/file-grid-item";
 import { FileListItem } from "@/components/file/file-list-item";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,6 +22,8 @@ import { fileNameExtension } from "@/lib/file-name-extension";
 import { FILE_TYPE_GROUPS, fileMatchesTypeGroup, isFileTypeGroupId } from "@/lib/file-type-groups";
 import { normalizeTags, PRESET_TAGS, tagToneClass } from "@/lib/tags";
 import { cn } from "@/lib/utils";
+import type { DirectoryViewMode } from "@/lib/view-mode";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
 type MergedEntry = { type: "directory"; item: Directory } | { type: "file"; item: FileRecord };
 
@@ -221,9 +226,10 @@ function matchesTagFilter(entry: MergedEntry, selectedTags: string[]): boolean {
 type DirectoryContentsTableProps = {
   childDirs: Directory[];
   files: FileRecord[];
+  viewMode: DirectoryViewMode;
 };
 
-function SortableTh({
+function SortableHeaderCell({
   sortKey,
   activeKey,
   sortDir,
@@ -240,11 +246,9 @@ function SortableTh({
 }) {
   const active = activeKey === sortKey;
   return (
-    <th
-      scope="col"
-      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+    <div
       className={cn(
-        "h-10 px-4 text-xs font-medium uppercase tracking-wider text-muted-foreground text-left",
+        "h-10 px-4 text-xs font-medium uppercase tracking-wider text-muted-foreground text-left flex items-center",
         align === "right" && "text-right",
       )}
     >
@@ -265,11 +269,15 @@ function SortableTh({
           )
         ) : null}
       </button>
-    </th>
+    </div>
   );
 }
 
-export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTableProps) {
+export function DirectoryContentsTable({
+  childDirs,
+  files,
+  viewMode,
+}: DirectoryContentsTableProps) {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [typeFilter, setTypeFilter] = useState(TYPE_FILTER_ALL);
@@ -277,6 +285,7 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [currentViewMode, setCurrentViewMode] = useState<DirectoryViewMode>(viewMode);
 
   const merged = useMemo(() => {
     const base = mergeEntries(childDirs, files);
@@ -481,57 +490,104 @@ export function DirectoryContentsTable({ childDirs, files }: DirectoryContentsTa
         </div>
       </div>
 
-      <p className="px-1 text-xs text-muted-foreground">
-        {viewCounts.folders} {viewCounts.folders === 1 ? "folder" : "folders"} and {viewCounts.files}{" "}
-        {viewCounts.files === 1 ? "file" : "files"} in view
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="px-1 text-xs text-muted-foreground">
+          {viewCounts.folders} {viewCounts.folders === 1 ? "folder" : "folders"} and{" "}
+          {viewCounts.files} {viewCounts.files === 1 ? "file" : "files"} in view
+        </p>
+        <div className="">
+          <ToggleGroup
+            type="single"
+            variant={"outline"}
+            value={currentViewMode}
+            onValueChange={(value) => {
+              if (value === "list" || value === "grid") {
+                setCurrentViewMode(value);
+                void setDirectoryViewModeAction(value);
+              }
+            }}
+          >
+            <ToggleGroupItem value="list">
+              <ListIcon className="size-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid">
+              <GridIcon className="size-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card ring-1 ring-foreground/10">
-        <table className="w-full min-w-[640px] caption-bottom text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40">
-              <SortableTh sortKey="type" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
-                Type
-              </SortableTh>
-              <SortableTh sortKey="name" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
-                Name
-              </SortableTh>
-              <SortableTh sortKey="createdAt" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
-                Date created
-              </SortableTh>
-              <SortableTh
-                sortKey="sourceFileCreated"
-                activeKey={sortBy}
-                sortDir={sortDir}
-                onSort={onSort}
-              >
-                Source file created
-              </SortableTh>
-              <SortableTh
-                sortKey="size"
-                activeKey={sortBy}
-                sortDir={sortDir}
-                onSort={onSort}
-                align="right"
-              >
-                File size
-              </SortableTh>
-              <th scope="col" className="w-12 px-2">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {merged.map((entry) =>
+        <div
+          className={cn(
+            "min-w-[640px] text-sm grid",
+            currentViewMode === "grid" && "grid-cols-5",
+            currentViewMode === "list" &&
+              "grid-cols-[minmax(5.5rem,0.9fr)_minmax(12rem,2.2fr)_minmax(9rem,1.1fr)_minmax(10rem,1.2fr)_minmax(7rem,0.9fr)_3rem]",
+          )}
+        >
+          <div
+            className={cn(
+              "border-border bg-muted/40 grid grid-cols-subgrid col-span-full",
+              currentViewMode === "list" && "border-b",
+            )}
+          >
+            <SortableHeaderCell sortKey="type" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
+              Type
+            </SortableHeaderCell>
+            <SortableHeaderCell sortKey="name" activeKey={sortBy} sortDir={sortDir} onSort={onSort}>
+              Name
+            </SortableHeaderCell>
+            <SortableHeaderCell
+              sortKey="createdAt"
+              activeKey={sortBy}
+              sortDir={sortDir}
+              onSort={onSort}
+            >
+              Date created
+            </SortableHeaderCell>
+            <SortableHeaderCell
+              sortKey="sourceFileCreated"
+              activeKey={sortBy}
+              sortDir={sortDir}
+              onSort={onSort}
+            >
+              Source file created
+            </SortableHeaderCell>
+            <SortableHeaderCell
+              sortKey="size"
+              activeKey={sortBy}
+              sortDir={sortDir}
+              onSort={onSort}
+              align="right"
+            >
+              File size
+            </SortableHeaderCell>
+            <div className="w-12 px-2">
+              <span className="sr-only">Actions</span>
+            </div>
+          </div>
+          {currentViewMode === "list" &&
+            merged.map((entry) =>
               entry.type === "directory" ? (
                 <DirectoryListItem key={entry.item.id} directory={entry.item} />
               ) : (
                 <FileListItem key={entry.item.id} file={entry.item} />
               ),
             )}
-          </tbody>
-        </table>
+        </div>
       </div>
+      {currentViewMode === "grid" && (
+        <div className="grid grid-cols-5 col-span-full gap-4">
+          {merged.map((entry) =>
+            entry.type === "directory" ? (
+              <DirectoryGridItem key={entry.item.id} directory={entry.item} />
+            ) : (
+              <FileGridItem key={entry.item.id} file={entry.item} />
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }

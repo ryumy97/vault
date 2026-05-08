@@ -2,15 +2,17 @@ import { CreateDirectoryForm } from "@/components/directory/create-directory-for
 import { DirectoryContentsTable } from "@/components/directory/directory-contents-table";
 import { FileInputButton, FolderInputButton, UploadProvider } from "@/components/upload-provider";
 import type { Directory, FileRecord } from "@/db/schema";
+import type { DirectoryViewMode } from "@/lib/view-mode";
 import { DirectoryHeader } from "./directory-header";
 
 type DirectoryBrowserProps = {
   directory: Directory;
   childDirs: Directory[];
   files: FileRecord[];
+  viewMode: DirectoryViewMode;
 };
 
-export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrowserProps) {
+export function DirectoryBrowser({ directory, childDirs, files, viewMode }: DirectoryBrowserProps) {
   const isEmpty = childDirs.length === 0 && files.length === 0;
 
   return (
@@ -30,7 +32,7 @@ export function DirectoryBrowser({ directory, childDirs, files }: DirectoryBrows
           {isEmpty ? (
             <p className="text-sm text-muted-foreground">No folders or files in this directory.</p>
           ) : (
-            <DirectoryContentsTable childDirs={childDirs} files={files} />
+            <DirectoryContentsTable childDirs={childDirs} files={files} viewMode={viewMode} />
           )}
         </section>
       </div>

@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { DirectoryBrowser } from "@/components/directory/directory-browser";
 import { RootSeedPrompt } from "@/components/root-seed-prompt";
 import { getDirectoryByPath, listChildDirectories, listFilesInDirectory } from "@/db/actions";
+import { DIRECTORY_VIEW_MODE_COOKIE, parseDirectoryViewMode } from "@/lib/view-mode";
 
 type PageProps = {
   params: Promise<{ path?: string[] }>;
@@ -17,6 +19,9 @@ function pathFromSegments(segments: string[] | undefined): string {
 }
 
 export default async function DirectoryPathPage({ params }: PageProps) {
+  const cookieStore = await cookies();
+  const viewMode = parseDirectoryViewMode(cookieStore.get(DIRECTORY_VIEW_MODE_COOKIE)?.value);
+
   const { path: segments } = await params;
   const dbPath = pathFromSegments(segments);
   const directory = await getDirectoryByPath(dbPath);
@@ -33,5 +38,12 @@ export default async function DirectoryPathPage({ params }: PageProps) {
     listFilesInDirectory(directory.id),
   ]);
 
-  return <DirectoryBrowser directory={directory} childDirs={childDirs} files={fileRecords} />;
+  return (
+    <DirectoryBrowser
+      directory={directory}
+      childDirs={childDirs}
+      files={fileRecords}
+      viewMode={viewMode}
+    />
+  );
 }
