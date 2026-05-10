@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { DirectoryBrowser } from "@/components/directory/directory-browser";
 import { RootSeedPrompt } from "@/components/root-seed-prompt";
@@ -18,7 +19,15 @@ function pathFromSegments(segments: string[] | undefined): string {
   return `/${parts.join("/")}`;
 }
 
-export default async function DirectoryPathPage({ params }: PageProps) {
+export default function DirectoryPathPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={null}>
+      <DirectoryContent params={params} />
+    </Suspense>
+  );
+}
+
+async function DirectoryContent({ params }: PageProps) {
   const cookieStore = await cookies();
   const viewMode = parseDirectoryViewMode(cookieStore.get(DIRECTORY_VIEW_MODE_COOKIE)?.value);
 

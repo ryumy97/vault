@@ -1,10 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { getDirectoryById, getFileById, listFilesInDirectory, updateFile } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 export type RenameFileState = {
   error: string | null;
@@ -62,9 +59,6 @@ export async function renameFileAction(
   if (!updated) {
     return { error: "Could not update file." };
   }
-
-  revalidateDirectoryListing(parent.path);
-  revalidatePath(`/files/${fileId}`);
 
   return { error: null };
 }

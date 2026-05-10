@@ -1,13 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { deleteBlob } from "@/blob";
 import { deleteFileById, getDirectoryById, getFileById } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
 import { hrefForDirectoryPath } from "@/lib/directory-url";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 export type DeleteFileState = {
   error: string | null;
@@ -47,9 +45,6 @@ export async function deleteFileAction(
   if (!removed) {
     return { error: "File record could not be removed." };
   }
-
-  revalidateDirectoryListing(parent.path);
-  revalidatePath(`/files/${fileId}`);
 
   if (!skipRedirect) {
     redirect(hrefForDirectoryPath(parent.path));

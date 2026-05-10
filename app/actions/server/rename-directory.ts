@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { getDirectoryById, renameDirectorySegment, updateDirectory } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
 import { hrefForDirectoryPath } from "@/lib/directory-url";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 import { parseTagsInput } from "@/lib/tags";
 
 export type RenameDirectoryState = {
@@ -55,7 +54,6 @@ export async function renameDirectoryAction(
     if (!updated) {
       return { error: "Could not update folder." };
     }
-    revalidateDirectoryListing("/");
     return { error: null };
   }
 
@@ -65,17 +63,6 @@ export async function renameDirectoryAction(
     if (!result.ok) {
       return { error: result.error };
     }
-
-    for (const p of result.revalidateOldPaths) {
-      revalidateDirectoryListing(p);
-    }
-    for (const p of result.revalidateNewPaths) {
-      revalidateDirectoryListing(p);
-    }
-    if (result.parentPath !== null) {
-      revalidateDirectoryListing(result.parentPath);
-    }
-
     redirectedPath = result.newPath;
   }
 
@@ -83,12 +70,8 @@ export async function renameDirectoryAction(
   if (!updated) {
     return { error: "Could not update folder." };
   }
-  revalidateDirectoryListing(target.path);
-  if (redirectedPath) {
-    revalidateDirectoryListing(redirectedPath);
-    if (redirectAfter) {
-      redirect(hrefForDirectoryPath(redirectedPath));
-    }
+  if (redirectedPath && redirectAfter) {
+    redirect(hrefForDirectoryPath(redirectedPath));
   }
 
   return { error: null };

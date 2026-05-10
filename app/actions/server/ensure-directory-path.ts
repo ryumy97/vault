@@ -3,7 +3,6 @@
 import { createDirectory, getDirectoryById, listChildDirectories } from "@/db/actions";
 import type { Directory } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 const MAX_SEGMENTS = 128;
 
@@ -84,6 +83,5 @@ export async function ensureDirectoryPathFromRoot(
     currentDir = child;
   }
 
-  revalidateDirectoryListing(root.path);
   return { ok: true, directoryId: currentId };
 }

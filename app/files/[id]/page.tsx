@@ -1,12 +1,12 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { Fragment, Suspense } from "react";
 import { FileHeader } from "@/components/file/file-header";
 import ImagePreview from "@/components/file/image-preview";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDirectoryById, getFileById } from "@/db/actions";
 import { formatBytes } from "@/lib/format-bytes";
 import { isImageFile } from "@/lib/is-image-file";
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { Fragment } from "react";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -42,7 +42,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${file.name} · Archive` };
 }
 
-export default async function FileDetailPage({ params }: PageProps) {
+export default function FileDetailPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={null}>
+      <FileDetailContent params={params} />
+    </Suspense>
+  );
+}
+
+async function FileDetailContent({ params }: PageProps) {
   const { id } = await params;
   const file = await getFileById(id);
 

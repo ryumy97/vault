@@ -15,7 +15,6 @@ import {
 } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
 import { IS_DEV } from "@/lib/env";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 import { sanitizeFileMetadata } from "@/lib/sanitize-file-metadata";
 
 const PRESIGNED_EXPIRES_SEC = 900;
@@ -200,7 +199,6 @@ export async function finalizeClientUpload(
 
   const already = await getFileByR2ObjectKey(r2ObjectKey);
   if (already) {
-    revalidateDirectoryListing(dir.path);
     return { ok: true };
   }
 
@@ -232,6 +230,5 @@ export async function finalizeClientUpload(
     return { ok: false, error: "Could not save file metadata." };
   }
 
-  revalidateDirectoryListing(dir.path);
   return { ok: true };
 }

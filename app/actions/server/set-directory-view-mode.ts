@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 
 import {
   DIRECTORY_VIEW_MODE_COOKIE,
-  parseDirectoryViewMode,
   type DirectoryViewMode,
+  parseDirectoryViewMode,
 } from "@/lib/view-mode";
 
 export async function setDirectoryViewModeAction(viewMode: DirectoryViewMode): Promise<void> {

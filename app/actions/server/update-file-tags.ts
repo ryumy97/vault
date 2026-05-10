@@ -1,9 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { getDirectoryById, getFileById, updateFile } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 import { parseTagsInput } from "@/lib/tags";
 
 export type UpdateFileTagsState = {
@@ -39,7 +37,5 @@ export async function updateFileTagsAction(
     return { error: "Could not update tags." };
   }
 
-  revalidateDirectoryListing(parent.path);
-  revalidatePath(`/files/${fileId}`);
   return { error: null };
 }

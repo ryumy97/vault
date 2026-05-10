@@ -3,7 +3,6 @@
 import { deleteBlob } from "@/blob";
 import { deleteDirectoryById, getDirectoryById, listFilesInDirectorySubtree } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
-import { revalidateDirectoryListing } from "@/lib/revalidate-directory-listing";
 
 export type DeleteDirectoryState = {
   error: string | null;
@@ -49,9 +48,6 @@ export async function deleteDirectoryAction(
   if (!removed) {
     return { error: "Folder could not be removed." };
   }
-
-  revalidateDirectoryListing(parent.path);
-  revalidateDirectoryListing(dir.path);
 
   return { error: null };
 }
