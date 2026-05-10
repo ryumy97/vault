@@ -2,15 +2,21 @@ import { PassThrough, Readable } from "node:stream";
 import archiver from "archiver";
 
 import { getBlobStream } from "@/blob";
-import { getDirectoriesByIds, getDirectoryById, listFilesInDirectorySubtree } from "@/db/actions";
+import {
+  getDirectoriesByIds,
+  getDirectoryById,
+  listFilesInDirectorySubtree,
+} from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
-import { logicalFilePathForZip, relativeZipEntryPath } from "@/lib/directory-zip-paths";
-
-export const runtime = "nodejs";
+import {
+  logicalFilePathForZip,
+  relativeZipEntryPath,
+} from "@/lib/directory-zip-paths";
 
 function s3HttpStatus(err: unknown): number | undefined {
   if (err && typeof err === "object" && "$metadata" in err) {
-    return (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+    return (err as { $metadata?: { httpStatusCode?: number } }).$metadata
+      ?.httpStatusCode;
   }
   return undefined;
 }
@@ -27,7 +33,10 @@ function asciiZipFilename(folderName: string): string {
 }
 
 /** Authenticated GET: stream a ZIP of this folder and all descendants. */
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
   if (!(await getSession())) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -107,9 +116,14 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const headers = new Headers();
   headers.set("Content-Type", "application/zip");
-  headers.set("Content-Disposition", contentDispositionAttachment(asciiZipFilename(dir.name)));
+  headers.set(
+    "Content-Disposition",
+    contentDispositionAttachment(asciiZipFilename(dir.name)),
+  );
   headers.set("Cache-Control", "private, no-store");
 
-  const webBody = Readable.toWeb(passThrough) as unknown as ReadableStream<Uint8Array>;
+  const webBody = Readable.toWeb(
+    passThrough,
+  ) as unknown as ReadableStream<Uint8Array>;
   return new Response(webBody, { status: 200, headers });
 }
