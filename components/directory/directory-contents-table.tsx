@@ -5,10 +5,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { setDirectoryViewModeAction } from "@/app/actions/server/set-directory-view-mode";
-import { DirectoryListItem } from "@/components/directory/directory-list-item";
 import { DirectoryGridItem } from "@/components/directory/directory-grid-item";
+import { DirectoryListItem } from "@/components/directory/directory-list-item";
 import { FileGridItem } from "@/components/file/file-grid-item";
 import { FileListItem } from "@/components/file/file-list-item";
+import { TagFilters } from "@/components/tag-filters";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
@@ -20,7 +21,7 @@ import {
 import type { Directory, FileRecord } from "@/db/schema";
 import { fileNameExtension } from "@/lib/file-name-extension";
 import { FILE_TYPE_GROUPS, fileMatchesTypeGroup, isFileTypeGroupId } from "@/lib/file-type-groups";
-import { normalizeTags, PRESET_TAGS, tagToneClass } from "@/lib/tags";
+import { normalizeTags } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 import type { DirectoryViewMode } from "@/lib/view-mode";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -444,50 +445,12 @@ export function DirectoryContentsTable({
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <div className="mt-3">
-          <p className="mb-2 text-xs text-muted-foreground">Tags (match any selected)</p>
-          <div className="flex flex-wrap gap-1.5">
-            <div className="flex flex-wrap gap-1.5 items-center">
-              {PRESET_TAGS.map((tag) => {
-                const selected = selectedTags.some((t) => t.toLowerCase() === tag.toLowerCase());
-
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={cn(
-                      "rounded-md border h-4 w-4",
-                      "transition-opacity cursor-pointer",
-                      {
-                        "opacity-24 hover:opacity-100": !selected,
-                      },
-                      tagToneClass(tag),
-                    )}
-                  ></button>
-                );
-              })}
-            </div>
-            {availableTags.map((tag) => {
-              const selected = selectedTags.some((t) => t.toLowerCase() === tag.toLowerCase());
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={cn(
-                    "rounded-md border px-2 py-1 text-xs",
-                    selected
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <TagFilters
+          className="mt-3"
+          availableTags={availableTags}
+          selectedTags={selectedTags}
+          onToggleTag={toggleTag}
+        />
       </div>
 
       <div className="flex items-center justify-between">

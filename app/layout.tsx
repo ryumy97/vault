@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { NotificationTunnelOutlet } from "@/components/notification-tunnel";
+import { SearchPaletteRoot } from "@/components/search/search-palette-root";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         {children}
+        <SearchPaletteRoot />
         <NotificationTunnelOutlet />
       </body>
     </html>

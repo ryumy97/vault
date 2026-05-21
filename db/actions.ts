@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, inArray, isNull, like, or } from "drizzle-orm";
+import { eq, ilike, inArray, isNull, like, or } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import {
@@ -21,6 +21,8 @@ import {
   invalidateAfterFileInsert,
   invalidateAfterFileUpdate,
 } from "@/lib/invalidate";
+import { escapeIlikePattern, SEARCH_PAGE_SIZE } from "@/lib/search";
+import { normalizeTags } from "@/lib/tags";
 
 import { db } from "./index";
 import {
@@ -392,4 +394,114 @@ export async function deleteFileById(id: string): Promise<FileRecord | undefined
   }
 
   return row;
+}
+
+/* ---------- search ---------- */
+
+export type SearchEntry =
+  | { type: "directory"; item: Directory }
+  | { type: "file"; item: FileRecord };
+
+export type SearchArchiveResult = {
+  entries: SearchEntry[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  availableTags: string[];
+};
+
+function matchesAnyTag(itemTags: string[] | null | undefined, selectedTags: string[]): boolean {
+  if (selectedTags.length === 0) {
+    return true;
+  }
+  const entryTags = new Set((itemTags ?? []).map((t) => t.toLowerCase()));
+  return selectedTags.some((tag) => entryTags.has(tag.toLowerCase()));
+}
+
+function mergeSearchEntries(childDirs: Directory[], fileRecords: FileRecord[]): SearchEntry[] {
+  return [
+    ...childDirs.map((item) => ({ type: "directory" as const, item })),
+    ...fileRecords.map((item) => ({ type: "file" as const, item })),
+  ];
+}
+
+function sortSearchEntriesByName(entries: SearchEntry[]): SearchEntry[] {
+  return [...entries].sort((a, b) => {
+    const nameCmp = a.item.name.localeCompare(b.item.name, undefined, { sensitivity: "base" });
+    if (nameCmp !== 0) {
+      return nameCmp;
+    }
+    if (a.type !== b.type) {
+      return a.type === "directory" ? -1 : 1;
+    }
+    return a.item.id.localeCompare(b.item.id);
+  });
+}
+
+/** Distinct tags used on any folder or file in the archive. */
+export async function listArchiveTags(): Promise<string[]> {
+  const [dirRows, fileRows] = await Promise.all([
+    db.select({ tags: directories.tags }).from(directories),
+    db.select({ tags: files.tags }).from(files),
+  ]);
+
+  return normalizeTags([
+    ...dirRows.flatMap((row) => row.tags ?? []),
+    ...fileRows.flatMap((row) => row.tags ?? []),
+  ]).sort((a, b) => a.localeCompare(b));
+}
+
+export async function searchArchive(params: {
+  q: string;
+  tags: string[];
+  page: number;
+}): Promise<SearchArchiveResult> {
+  const q = params.q.trim();
+  const tagFilter = normalizeTags(params.tags);
+  const page = Math.max(1, params.page);
+  const pageSize = SEARCH_PAGE_SIZE;
+
+  const hasQuery = q.length > 0;
+  const hasTagFilter = tagFilter.length > 0;
+
+  if (!hasQuery && !hasTagFilter) {
+    return {
+      entries: [],
+      totalCount: 0,
+      page,
+      pageSize,
+      availableTags: [],
+    };
+  }
+
+  const pattern = hasQuery ? `%${escapeIlikePattern(q)}%` : null;
+
+  const [dirRows, fileRows] = await Promise.all([
+    pattern
+      ? db
+          .select()
+          .from(directories)
+          .where(or(ilike(directories.name, pattern), ilike(directories.path, pattern)))
+      : db.select().from(directories),
+    pattern ? db.select().from(files).where(ilike(files.name, pattern)) : db.select().from(files),
+  ]);
+
+  const mergedForTags = mergeSearchEntries(dirRows, fileRows);
+  const availableTags = normalizeTags(mergedForTags.flatMap((entry) => entry.item.tags ?? [])).sort(
+    (a, b) => a.localeCompare(b),
+  );
+
+  const filtered = mergedForTags.filter((entry) => matchesAnyTag(entry.item.tags, tagFilter));
+  const sorted = sortSearchEntriesByName(filtered);
+  const totalCount = sorted.length;
+  const offset = (page - 1) * pageSize;
+  const entries = sorted.slice(offset, offset + pageSize);
+
+  return {
+    entries,
+    totalCount,
+    page,
+    pageSize,
+    availableTags,
+  };
 }
