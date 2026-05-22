@@ -405,9 +405,15 @@ export type SearchEntry =
 export type SearchArchiveResult = {
   entries: SearchEntry[];
   totalCount: number;
+  fileCount: number;
   page: number;
   pageSize: number;
   availableTags: string[];
+};
+
+type SearchFilterParams = {
+  q: string;
+  tags: string[];
 };
 
 function matchesAnyTag(itemTags: string[] | null | undefined, selectedTags: string[]): boolean {
@@ -451,27 +457,16 @@ export async function listArchiveTags(): Promise<string[]> {
   ]).sort((a, b) => a.localeCompare(b));
 }
 
-export async function searchArchive(params: {
-  q: string;
-  tags: string[];
-  page: number;
-}): Promise<SearchArchiveResult> {
+async function fetchSearchFilteredEntries(
+  params: SearchFilterParams,
+): Promise<{ entries: SearchEntry[]; availableTags: string[] } | null> {
   const q = params.q.trim();
   const tagFilter = normalizeTags(params.tags);
-  const page = Math.max(1, params.page);
-  const pageSize = SEARCH_PAGE_SIZE;
-
   const hasQuery = q.length > 0;
   const hasTagFilter = tagFilter.length > 0;
 
   if (!hasQuery && !hasTagFilter) {
-    return {
-      entries: [],
-      totalCount: 0,
-      page,
-      pageSize,
-      availableTags: [],
-    };
+    return null;
   }
 
   const pattern = hasQuery ? `%${escapeIlikePattern(q)}%` : null;
@@ -493,13 +488,50 @@ export async function searchArchive(params: {
 
   const filtered = mergedForTags.filter((entry) => matchesAnyTag(entry.item.tags, tagFilter));
   const sorted = sortSearchEntriesByName(filtered);
+
+  return { entries: sorted, availableTags };
+}
+
+/** All files matching search filters (all pages; excludes folders). */
+export async function listSearchFiles(params: SearchFilterParams): Promise<FileRecord[]> {
+  const result = await fetchSearchFilteredEntries(params);
+  if (!result) {
+    return [];
+  }
+
+  return result.entries
+    .filter((entry): entry is { type: "file"; item: FileRecord } => entry.type === "file")
+    .map((entry) => entry.item);
+}
+
+export async function searchArchive(
+  params: SearchFilterParams & { page: number },
+): Promise<SearchArchiveResult> {
+  const page = Math.max(1, params.page);
+  const pageSize = SEARCH_PAGE_SIZE;
+  const filtered = await fetchSearchFilteredEntries(params);
+
+  if (!filtered) {
+    return {
+      entries: [],
+      totalCount: 0,
+      fileCount: 0,
+      page,
+      pageSize,
+      availableTags: [],
+    };
+  }
+
+  const { entries: sorted, availableTags } = filtered;
   const totalCount = sorted.length;
+  const fileCount = sorted.filter((entry) => entry.type === "file").length;
   const offset = (page - 1) * pageSize;
   const entries = sorted.slice(offset, offset + pageSize);
 
   return {
     entries,
     totalCount,
+    fileCount,
     page,
     pageSize,
     availableTags,

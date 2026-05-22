@@ -50,3 +50,18 @@ export function buildSearchHref(params: { q?: string; tags?: string[]; page?: nu
   const qs = sp.toString();
   return qs ? `/search?${qs}` : "/search";
 }
+
+/** Authenticated GET route: ZIP of all files matching search filters (all pages). */
+export function hrefForSearchZipDownload(params: { q?: string; tags?: string[] }): string {
+  const sp = new URLSearchParams();
+  const q = params.q?.trim();
+  if (q) {
+    sp.set("q", q);
+  }
+  const tags = normalizeTags(params.tags ?? []);
+  if (tags.length > 0) {
+    sp.set("tags", tags.join(","));
+  }
+  const qs = sp.toString();
+  return qs ? `/api/search/zip?${qs}` : "/api/search/zip";
+}

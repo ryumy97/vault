@@ -41,6 +41,7 @@ async function SearchPageContent({ searchParams }: PageProps) {
       tags={tags}
       page={effectivePage}
       totalCount={result.totalCount}
+      fileCount={result.fileCount}
       pageSize={result.pageSize}
       entries={result.entries}
       availableTags={result.availableTags}

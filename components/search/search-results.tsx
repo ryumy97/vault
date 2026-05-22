@@ -1,6 +1,6 @@
 "use client";
 
-import { GridIcon, ListIcon, SearchIcon } from "lucide-react";
+import { Download, GridIcon, ListIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -12,10 +12,11 @@ import { FileGridItem } from "@/components/file/file-grid-item";
 import { FileListItem } from "@/components/file/file-list-item";
 import { SearchPagination } from "@/components/search/search-pagination";
 import { TagFilters } from "@/components/tag-filters";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { SearchEntry } from "@/db/actions";
-import { buildSearchHref } from "@/lib/search";
+import { buildSearchHref, hrefForSearchZipDownload } from "@/lib/search";
 import { cn } from "@/lib/utils";
 import type { DirectoryViewMode } from "@/lib/view-mode";
 
@@ -24,6 +25,7 @@ type SearchResultsProps = {
   tags: string[];
   page: number;
   totalCount: number;
+  fileCount: number;
   pageSize: number;
   entries: SearchEntry[];
   availableTags: string[];
@@ -35,6 +37,7 @@ export function SearchResults({
   tags,
   page,
   totalCount,
+  fileCount,
   pageSize,
   entries,
   availableTags,
@@ -51,6 +54,7 @@ export function SearchResults({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const hasFilters = q.length > 0 || tags.length > 0;
+  const downloadZipHref = hrefForSearchZipDownload({ q, tags });
 
   const viewCounts = useMemo(() => {
     return entries.reduce(
@@ -154,7 +158,7 @@ export function SearchResults({
           </p>
         ) : (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="px-1 text-xs text-muted-foreground">
                 {totalCount} {totalCount === 1 ? "result" : "results"}
                 {totalPages > 1 ? (
@@ -171,24 +175,37 @@ export function SearchResults({
                   </>
                 ) : null}
               </p>
-              <ToggleGroup
-                type="single"
-                variant="outline"
-                value={currentViewMode}
-                onValueChange={(value) => {
-                  if (value === "list" || value === "grid") {
-                    setCurrentViewMode(value);
-                    void setDirectoryViewModeAction(value);
-                  }
-                }}
-              >
-                <ToggleGroupItem value="list" aria-label="List view">
-                  <ListIcon className="size-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="grid" aria-label="Grid view">
-                  <GridIcon className="size-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
+              <div className="flex items-center gap-2">
+                {fileCount > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(downloadZipHref, "_blank", "noopener,noreferrer")}
+                  >
+                    <Download className="size-4" />
+                    Download {fileCount} {fileCount === 1 ? "file" : "files"}
+                  </Button>
+                ) : null}
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  value={currentViewMode}
+                  onValueChange={(value) => {
+                    if (value === "list" || value === "grid") {
+                      setCurrentViewMode(value);
+                      void setDirectoryViewModeAction(value);
+                    }
+                  }}
+                >
+                  <ToggleGroupItem value="list" aria-label="List view">
+                    <ListIcon className="size-4" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="grid" aria-label="Grid view">
+                    <GridIcon className="size-4" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-border bg-card ring-1 ring-foreground/10">

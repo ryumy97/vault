@@ -1,42 +1,17 @@
 import { PassThrough, Readable } from "node:stream";
 import archiver from "archiver";
 
-import { getBlobStream } from "@/blob";
-import {
-  getDirectoriesByIds,
-  getDirectoryById,
-  listFilesInDirectorySubtree,
-} from "@/db/actions";
+import { getDirectoriesByIds, getDirectoryById, listFilesInDirectorySubtree } from "@/db/actions";
 import { getSession } from "@/lib/auth/session";
+import { logicalFilePathForZip, relativeZipEntryPath } from "@/lib/directory-zip-paths";
 import {
-  logicalFilePathForZip,
-  relativeZipEntryPath,
-} from "@/lib/directory-zip-paths";
-
-function s3HttpStatus(err: unknown): number | undefined {
-  if (err && typeof err === "object" && "$metadata" in err) {
-    return (err as { $metadata?: { httpStatusCode?: number } }).$metadata
-      ?.httpStatusCode;
-  }
-  return undefined;
-}
-
-function contentDispositionAttachment(filename: string): string {
-  const ascii = filename.replace(/[^\x20-\x7E]/g, "_");
-  const encoded = encodeURIComponent(filename);
-  return `attachment; filename="${ascii.replace(/"/g, '\\"')}"; filename*=UTF-8''${encoded}`;
-}
-
-function asciiZipFilename(folderName: string): string {
-  const base = folderName.trim() || "folder";
-  return `${base.replace(/[^\x20-\x7E]/g, "_")}.zip`;
-}
+  appendFilesToArchive,
+  asciiZipFilename,
+  contentDispositionAttachment,
+} from "@/lib/zip-download";
 
 /** Authenticated GET: stream a ZIP of this folder and all descendants. */
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   if (!(await getSession())) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -63,11 +38,10 @@ export async function GET(
 
   const background = (async () => {
     try {
-      const usedNames = new Set<string>();
-      for (const file of subtreeFiles) {
+      await appendFilesToArchive(archive, subtreeFiles, (file) => {
         const parentPath = pathById.get(file.directoryId);
         if (!parentPath) {
-          continue;
+          return file.name;
         }
 
         const logical = logicalFilePathForZip(parentPath, file.name);
@@ -75,33 +49,8 @@ export async function GET(
         if (!entry) {
           entry = file.name;
         }
-        if (usedNames.has(entry)) {
-          const dot = entry.lastIndexOf(".");
-          const stem = dot > 0 ? entry.slice(0, dot) : entry;
-          const ext = dot > 0 ? entry.slice(dot) : "";
-          entry = `${stem}-${file.id.slice(0, 8)}${ext}`;
-        }
-        usedNames.add(entry);
-
-        try {
-          const { body } = await getBlobStream(file.r2ObjectKey);
-          if (!body) {
-            archive.append(Buffer.alloc(0), { name: entry });
-            continue;
-          }
-          const webStream = body.transformToWebStream();
-          const readable = Readable.fromWeb(
-            webStream as import("node:stream/web").ReadableStream<Uint8Array>,
-          );
-          archive.append(readable, { name: entry });
-        } catch (err) {
-          if (s3HttpStatus(err) === 404) {
-            archive.append(Buffer.alloc(0), { name: entry });
-            continue;
-          }
-          throw err;
-        }
-      }
+        return entry;
+      });
       await archive.finalize();
     } catch (e) {
       archive.abort();
@@ -116,14 +65,9 @@ export async function GET(
 
   const headers = new Headers();
   headers.set("Content-Type", "application/zip");
-  headers.set(
-    "Content-Disposition",
-    contentDispositionAttachment(asciiZipFilename(dir.name)),
-  );
+  headers.set("Content-Disposition", contentDispositionAttachment(asciiZipFilename(dir.name)));
   headers.set("Cache-Control", "private, no-store");
 
-  const webBody = Readable.toWeb(
-    passThrough,
-  ) as unknown as ReadableStream<Uint8Array>;
+  const webBody = Readable.toWeb(passThrough) as unknown as ReadableStream<Uint8Array>;
   return new Response(webBody, { status: 200, headers });
 }
