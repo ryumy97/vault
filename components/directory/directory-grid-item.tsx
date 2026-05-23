@@ -1,11 +1,20 @@
 "use client";
 
-import { FolderIcon } from "lucide-react";
+import { Download, FolderIcon, FolderOpen, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
+import { DeleteDirectoryDialog } from "@/components/directory/delete-directory-dialog";
+import { RenameDirectoryDialog } from "@/components/directory/rename-directory-dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import type { Directory } from "@/db/schema";
-import { hrefForDirectoryPath } from "@/lib/directory-url";
+import { hrefForDirectoryPath, hrefForDirectoryZipDownload } from "@/lib/directory-url";
 
 type DirectoryGridItemProps = {
   directory: Directory;
@@ -14,30 +23,78 @@ type DirectoryGridItemProps = {
 export function DirectoryGridItem({ directory }: DirectoryGridItemProps) {
   const router = useRouter();
   const href = hrefForDirectoryPath(directory.path);
+  const canRename = directory.path !== "/";
+
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const open = useCallback(() => {
     router.push(href);
   }, [router, href]);
 
-  return (
-    <button
-      type="button"
-      className="rounded-xl border border-border bg-card text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/80 overflow-hidden"
-      onDoubleClick={open}
-      onClick={open}
-    >
-      <div className="mb-3 overflow-hidden">
-        <div className="relative aspect-square w-full bg-muted/50 flex items-center justify-center">
-          <FolderIcon className="size-12 text-amber-600 dark:text-amber-400" />
-        </div>
-      </div>
+  const downloadZipHref = hrefForDirectoryZipDownload(directory.id);
+  const downloadZip = useCallback(() => {
+    window.open(downloadZipHref, "_blank", "noopener,noreferrer");
+  }, [downloadZipHref]);
 
-      <div className="px-4">
-        <span className="block truncate font-medium text-foreground">{directory.name}</span>
-      </div>
-      <div className="px-4 pb-3 text-muted-foreground flex items-center">
-        <p className="truncate font-mono text-xs text-muted-foreground">{directory.path}</p>
-      </div>
-    </button>
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <button
+          type="button"
+          className="rounded-xl border border-border bg-card text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/80 overflow-hidden"
+          onDoubleClick={open}
+          onClick={open}
+        >
+          <div className="mb-3 overflow-hidden">
+            <div className="relative aspect-square w-full bg-muted/50 flex items-center justify-center">
+              <FolderIcon className="size-12 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+
+          <div className="px-4">
+            <span className="block truncate font-medium text-foreground">{directory.name}</span>
+          </div>
+          <div className="px-4 pb-3 text-muted-foreground flex items-center">
+            <p className="truncate font-mono text-xs text-muted-foreground">{directory.path}</p>
+          </div>
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-44">
+        <ContextMenuItem onSelect={open}>
+          <FolderOpen className="size-4" />
+          Open
+        </ContextMenuItem>
+        {canRename ? (
+          <ContextMenuItem onSelect={() => setRenameOpen(true)}>
+            <Pencil className="size-4" />
+            Rename
+          </ContextMenuItem>
+        ) : null}
+        <ContextMenuItem onSelect={downloadZip}>
+          <Download className="size-4" />
+          Download
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
+          <Trash2 className="size-4" />
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+
+      {canRename ? (
+        <RenameDirectoryDialog
+          directory={directory}
+          showDefaultTrigger={false}
+          open={renameOpen}
+          onOpenChange={setRenameOpen}
+        />
+      ) : null}
+      <DeleteDirectoryDialog
+        directory={directory}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
+    </ContextMenu>
   );
 }
