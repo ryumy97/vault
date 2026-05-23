@@ -1,10 +1,11 @@
 "use client";
 
-import { Download, FileText, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Download, FileText, MoreHorizontal, Pencil, Tags, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { DeleteFileDialog } from "@/components/file/delete-file-dialog";
+import { EditFileTagsDialog } from "@/components/file/edit-file-tags-dialog";
 import { FileEntryIcon } from "@/components/file/file-entry-icon";
 import { RenameFileDialog } from "@/components/file/rename-file-dialog";
 import { Button } from "@/components/ui/button";
@@ -37,11 +38,12 @@ type FileListItemProps = {
 function FileRowMenuItems(props: {
   onOpen: () => void;
   onRename: () => void;
+  onEditTags: () => void;
   onDelete: () => void;
   downloadHref: string;
   variant: "context" | "dropdown";
 }) {
-  const { onOpen, onRename, onDelete, downloadHref, variant } = props;
+  const { onOpen, onRename, onEditTags, onDelete, downloadHref, variant } = props;
   const Item = variant === "context" ? ContextMenuItem : DropdownMenuItem;
   const Sep = variant === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
@@ -54,6 +56,10 @@ function FileRowMenuItems(props: {
       <Item onSelect={onRename}>
         <Pencil className="size-4" />
         Rename
+      </Item>
+      <Item onSelect={onEditTags}>
+        <Tags className="size-4" />
+        Edit tags
       </Item>
       <Item onSelect={() => window.open(downloadHref, "_blank", "noopener,noreferrer")}>
         <Download className="size-4" />
@@ -74,6 +80,7 @@ export function FileListItem({ file }: FileListItemProps) {
   const downloadHref = hrefForFileDownload(file.id);
 
   const [renameOpen, setRenameOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [windowLoaded, setWindowLoaded] = useState(false);
 
@@ -164,6 +171,7 @@ export function FileListItem({ file }: FileListItemProps) {
                   <FileRowMenuItems
                     onOpen={open}
                     onRename={() => setRenameOpen(true)}
+                    onEditTags={() => setTagsOpen(true)}
                     onDelete={() => setDeleteOpen(true)}
                     downloadHref={downloadHref}
                     variant="dropdown"
@@ -178,6 +186,7 @@ export function FileListItem({ file }: FileListItemProps) {
         <FileRowMenuItems
           onOpen={open}
           onRename={() => setRenameOpen(true)}
+          onEditTags={() => setTagsOpen(true)}
           onDelete={() => setDeleteOpen(true)}
           downloadHref={downloadHref}
           variant="context"
@@ -189,6 +198,12 @@ export function FileListItem({ file }: FileListItemProps) {
         showDefaultTrigger={false}
         open={renameOpen}
         onOpenChange={setRenameOpen}
+      />
+      <EditFileTagsDialog
+        file={file}
+        showDefaultTrigger={false}
+        open={tagsOpen}
+        onOpenChange={setTagsOpen}
       />
       <DeleteFileDialog
         fileId={file.id}

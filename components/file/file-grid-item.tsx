@@ -1,11 +1,12 @@
 "use client";
 
-import { Download, FileText, Pencil, Trash2 } from "lucide-react";
+import { Download, FileText, Pencil, Tags, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { DeleteFileDialog } from "@/components/file/delete-file-dialog";
+import { EditFileTagsDialog } from "@/components/file/edit-file-tags-dialog";
 import { FileEntryIcon } from "@/components/file/file-entry-icon";
 import { RenameFileDialog } from "@/components/file/rename-file-dialog";
 import {
@@ -32,6 +33,7 @@ export function FileGridItem({ file }: FileGridItemProps) {
   const showImagePreview = isImageFile(file.name, file.contentType);
 
   const [renameOpen, setRenameOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const open = useCallback(() => {
@@ -90,6 +92,10 @@ export function FileGridItem({ file }: FileGridItemProps) {
           <Pencil className="size-4" />
           Rename
         </ContextMenuItem>
+        <ContextMenuItem onSelect={() => setTagsOpen(true)}>
+          <Tags className="size-4" />
+          Edit tags
+        </ContextMenuItem>
         <ContextMenuItem
           onSelect={() => window.open(downloadHref, "_blank", "noopener,noreferrer")}
         >
@@ -108,6 +114,12 @@ export function FileGridItem({ file }: FileGridItemProps) {
         showDefaultTrigger={false}
         open={renameOpen}
         onOpenChange={setRenameOpen}
+      />
+      <EditFileTagsDialog
+        file={file}
+        showDefaultTrigger={false}
+        open={tagsOpen}
+        onOpenChange={setTagsOpen}
       />
       <DeleteFileDialog
         fileId={file.id}

@@ -1,10 +1,11 @@
 "use client";
 
-import { Download, FolderIcon, FolderOpen, Pencil, Trash2 } from "lucide-react";
+import { Download, FolderIcon, FolderOpen, Pencil, Tags, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { DeleteDirectoryDialog } from "@/components/directory/delete-directory-dialog";
+import { EditDirectoryTagsDialog } from "@/components/directory/edit-directory-tags-dialog";
 import { RenameDirectoryDialog } from "@/components/directory/rename-directory-dialog";
 import {
   ContextMenu,
@@ -26,6 +27,7 @@ export function DirectoryGridItem({ directory }: DirectoryGridItemProps) {
   const canRename = directory.path !== "/";
 
   const [renameOpen, setRenameOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const open = useCallback(() => {
@@ -71,6 +73,10 @@ export function DirectoryGridItem({ directory }: DirectoryGridItemProps) {
             Rename
           </ContextMenuItem>
         ) : null}
+        <ContextMenuItem onSelect={() => setTagsOpen(true)}>
+          <Tags className="size-4" />
+          Edit tags
+        </ContextMenuItem>
         <ContextMenuItem onSelect={downloadZip}>
           <Download className="size-4" />
           Download
@@ -90,6 +96,12 @@ export function DirectoryGridItem({ directory }: DirectoryGridItemProps) {
           onOpenChange={setRenameOpen}
         />
       ) : null}
+      <EditDirectoryTagsDialog
+        directory={directory}
+        showDefaultTrigger={false}
+        open={tagsOpen}
+        onOpenChange={setTagsOpen}
+      />
       <DeleteDirectoryDialog
         directory={directory}
         open={deleteOpen}

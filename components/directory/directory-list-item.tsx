@@ -1,10 +1,11 @@
 "use client";
 
-import { Download, Folder, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Download, Folder, FolderOpen, MoreHorizontal, Pencil, Tags, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { DeleteDirectoryDialog } from "@/components/directory/delete-directory-dialog";
+import { EditDirectoryTagsDialog } from "@/components/directory/edit-directory-tags-dialog";
 import { RenameDirectoryDialog } from "@/components/directory/rename-directory-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,12 +35,13 @@ type DirectoryListItemProps = {
 function DirectoryRowMenuItems(props: {
   onOpen: () => void;
   onRename: () => void;
+  onEditTags: () => void;
   onDownload: () => void;
   onDelete: () => void;
   canRename: boolean;
   variant: "context" | "dropdown";
 }) {
-  const { onOpen, onRename, onDownload, onDelete, canRename, variant } = props;
+  const { onOpen, onRename, onEditTags, onDownload, onDelete, canRename, variant } = props;
   const Item = variant === "context" ? ContextMenuItem : DropdownMenuItem;
   const Sep = variant === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
@@ -55,6 +57,10 @@ function DirectoryRowMenuItems(props: {
           Rename
         </Item>
       ) : null}
+      <Item onSelect={onEditTags}>
+        <Tags className="size-4" />
+        Edit tags
+      </Item>
       <Item onSelect={onDownload}>
         <Download className="size-4" />
         Download
@@ -74,6 +80,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
   const canRename = dir.path !== "/";
 
   const [renameOpen, setRenameOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [windowLoaded, setWindowLoaded] = useState(false);
 
@@ -155,6 +162,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
                   <DirectoryRowMenuItems
                     onOpen={open}
                     onRename={() => setRenameOpen(true)}
+                    onEditTags={() => setTagsOpen(true)}
                     onDownload={downloadZip}
                     onDelete={() => setDeleteOpen(true)}
                     canRename={canRename}
@@ -170,6 +178,7 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
         <DirectoryRowMenuItems
           onOpen={open}
           onRename={() => setRenameOpen(true)}
+          onEditTags={() => setTagsOpen(true)}
           onDownload={downloadZip}
           onDelete={() => setDeleteOpen(true)}
           canRename={canRename}
@@ -185,6 +194,12 @@ export function DirectoryListItem({ directory: dir }: DirectoryListItemProps) {
           onOpenChange={setRenameOpen}
         />
       ) : null}
+      <EditDirectoryTagsDialog
+        directory={dir}
+        showDefaultTrigger={false}
+        open={tagsOpen}
+        onOpenChange={setTagsOpen}
+      />
       <DeleteDirectoryDialog directory={dir} open={deleteOpen} onOpenChange={setDeleteOpen} />
     </ContextMenu>
   );
