@@ -2,7 +2,7 @@ import { PassThrough, Readable } from "node:stream";
 import archiver from "archiver";
 
 import { getDirectoriesByIds, getDirectoryById, listFilesInDirectorySubtree } from "@/db/actions";
-import { getSession } from "@/lib/auth/session";
+import { requireRequestAuth } from "@/lib/auth/request-auth";
 import { logicalFilePathForZip, relativeZipEntryPath } from "@/lib/directory-zip-paths";
 import {
   appendFilesToArchive,
@@ -11,9 +11,10 @@ import {
 } from "@/lib/zip-download";
 
 /** Authenticated GET: stream a ZIP of this folder and all descendants. */
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  if (!(await getSession())) {
-    return new Response("Unauthorized", { status: 401 });
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const denied = await requireRequestAuth(request);
+  if (denied) {
+    return denied;
   }
 
   const { id } = await context.params;

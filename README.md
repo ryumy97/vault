@@ -29,6 +29,28 @@ Open [https://localhost:3000](https://localhost:3000) (this project runs the dev
 
 You will need environment variables for your database (used by Drizzle) and for R2 (account ID, access keys, bucket name, and optional custom domain or public URL). Add them to `.env` locally; do not commit secrets.
 
+### API keys
+
+For programmatic access to `/api/*` routes (and file download routes), set one or more keys in `.env`:
+
+```bash
+ARCHIVE_API_KEYS=your-secret-key,optional-second-key
+```
+
+Send a key on each request using either header:
+
+- `Authorization: Bearer your-secret-key`
+- `X-API-Key: your-secret-key`
+
+Example:
+
+```bash
+curl -sS -H "Authorization: Bearer your-secret-key" \
+  "https://localhost:3000/api/search/images?tag=vacation"
+```
+
+Browser sign-in still uses the `archive_session` cookie; API keys are an alternative for scripts and external tools.
+
 ## Learn more
 
 - [Next.js documentation](https://nextjs.org/docs)

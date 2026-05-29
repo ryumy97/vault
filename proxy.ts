@@ -1,20 +1,23 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import { verifySessionToken } from "@/lib/auth/jwt";
+import { isRequestAuthorized } from "@/lib/auth/request-auth";
 
 /** Public image stream; not gated by session (see `app/files/[id]/image/route.ts`). */
 const FILE_IMAGE_PATH = /^\/files\/[^/]+\/image$/;
+const API_PATH = /^\/api\//;
 
 export async function proxy(request: NextRequest) {
   if (FILE_IMAGE_PATH.test(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (token && (await verifySessionToken(token))) {
+  if (await isRequestAuthorized(request)) {
     return NextResponse.next();
+  }
+
+  if (API_PATH.test(request.nextUrl.pathname)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const signInUrl = new URL("/signin", request.url);

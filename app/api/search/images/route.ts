@@ -1,5 +1,5 @@
 import { listSearchFiles } from "@/db/actions";
-import { getSession } from "@/lib/auth/session";
+import { requireRequestAuth } from "@/lib/auth/request-auth";
 import {
   filesToTagImageSearchResults,
   parseTagSearchParam,
@@ -7,8 +7,9 @@ import {
 
 /** Authenticated GET: images with a given tag (`?tag=`). */
 export async function GET(request: Request) {
-  if (!(await getSession())) {
-    return new Response("Unauthorized", { status: 401 });
+  const denied = await requireRequestAuth(request);
+  if (denied) {
+    return denied;
   }
 
   const { searchParams } = new URL(request.url);

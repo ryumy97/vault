@@ -2,7 +2,7 @@ import { PassThrough, Readable } from "node:stream";
 import archiver from "archiver";
 
 import { getDirectoriesByIds, listSearchFiles } from "@/db/actions";
-import { getSession } from "@/lib/auth/session";
+import { requireRequestAuth } from "@/lib/auth/request-auth";
 import { logicalFilePathForZip, sanitizeZipEntryPath } from "@/lib/directory-zip-paths";
 import { parseSearchParams } from "@/lib/search";
 import {
@@ -28,8 +28,9 @@ function zipEntryPathForSearch(parentPath: string, fileName: string): string {
 
 /** Authenticated GET: stream a ZIP of all files matching search filters (all pages). */
 export async function GET(request: Request) {
-  if (!(await getSession())) {
-    return new Response("Unauthorized", { status: 401 });
+  const denied = await requireRequestAuth(request);
+  if (denied) {
+    return denied;
   }
 
   const { searchParams } = new URL(request.url);

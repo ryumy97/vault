@@ -1,6 +1,6 @@
 import { getBlobStream } from "@/blob";
 import { getFileById } from "@/db/actions";
-import { getSession } from "@/lib/auth/session";
+import { requireRequestAuth } from "@/lib/auth/request-auth";
 
 function s3HttpStatus(err: unknown): number | undefined {
   if (err && typeof err === "object" && "$metadata" in err) {
@@ -16,9 +16,10 @@ function contentDispositionAttachment(filename: string): string {
 }
 
 /** Authenticated GET: stream file bytes from R2 for download. */
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  if (!(await getSession())) {
-    return new Response("Unauthorized", { status: 401 });
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const denied = await requireRequestAuth(request);
+  if (denied) {
+    return denied;
   }
 
   const { id } = await context.params;
