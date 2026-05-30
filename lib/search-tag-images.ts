@@ -1,40 +1,55 @@
 import type { FileRecord } from "@/db/schema";
 import { isImageFile } from "@/lib/is-image-file";
-import { parseDimensionsFromMetadata } from "@/lib/parse-dimensions-from-metadata";
+import {
+  parseDimensionsFromMetadata,
+  parseOriginalDimensionsFromMetadata,
+} from "@/lib/parse-dimensions-from-metadata";
 
 export type TagImageSearchItem = {
   filename: string;
+  /** From stored upload metadata (`Original dimensions`, raw EXIF sensor pixels). */
   originalWidth: number | null;
   originalHeight: number | null;
+  /** From stored upload metadata (`Dimensions`, display-oriented; EXIF orientation applied). */
+  width: number | null;
+  height: number | null;
   isPortrait: boolean | null;
   storageKey: string;
 };
 
-export function fileToTagImageSearchItem(file: FileRecord): TagImageSearchItem | null {
+export function fileToTagImageSearchItem(
+  file: FileRecord,
+): TagImageSearchItem | null {
   if (!isImageFile(file.name, file.contentType)) {
     return null;
   }
 
-  const dims = parseDimensionsFromMetadata(file.metadata);
+  const storedDims = parseDimensionsFromMetadata(file.metadata);
+  const originalDims = parseOriginalDimensionsFromMetadata(file.metadata);
+  const portraitSource = storedDims ?? originalDims;
 
   return {
     filename: file.name,
-    originalWidth: dims?.width ?? null,
-    originalHeight: dims?.height ?? null,
-    isPortrait: dims ? dims.height > dims.width : null,
+    originalWidth: originalDims?.width ?? null,
+    originalHeight: originalDims?.height ?? null,
+    width: storedDims?.width ?? null,
+    height: storedDims?.height ?? null,
+    isPortrait: portraitSource
+      ? portraitSource.height > portraitSource.width
+      : null,
     storageKey: file.r2ObjectKey,
   };
 }
 
-export function filesToTagImageSearchResults(files: FileRecord[]): TagImageSearchItem[] {
-  const out: TagImageSearchItem[] = [];
-  for (const file of files) {
-    const item = fileToTagImageSearchItem(file);
-    if (item) {
-      out.push(item);
-    }
-  }
-  return out;
+export function filesToTagImageSearchResults(
+  files: FileRecord[],
+): TagImageSearchItem[] {
+  return files
+    .map((file) => fileToTagImageSearchItem(file))
+    .filter((item): item is TagImageSearchItem => item != null)
+    .sort((a, b) =>
+      a.filename.localeCompare(b.filename, undefined, { sensitivity: "base" }),
+    );
 }
 
 export function parseTagSearchParam(

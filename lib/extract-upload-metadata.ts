@@ -2,6 +2,7 @@ import exifr from "exifr";
 
 import type { FileMetadataKv } from "@/db/schema";
 import { isImageFile } from "@/lib/is-image-file";
+import { parseImageDimensionsFromFile } from "@/lib/parse-image-dimensions-from-bytes";
 
 function put(meta: FileMetadataKv, label: string, value: unknown) {
   if (value === undefined || value === null) {
@@ -134,6 +135,27 @@ function focalLengthLabel(x: unknown): string | undefined {
   return undefined;
 }
 
+function exifDimensionsFromParsedData(
+  data: Record<string, unknown>,
+): { width: number; height: number } | null {
+  const w =
+    num(data.ExifImageWidth) ??
+    num(data.ImageWidth) ??
+    num(data.PixelXDimension) ??
+    num(data.width);
+  const h =
+    num(data.ExifImageHeight) ??
+    num(data.ImageHeight) ??
+    num(data.PixelYDimension) ??
+    num(data.height);
+
+  if (w == null || h == null) {
+    return null;
+  }
+
+  return { width: Math.round(w), height: Math.round(h) };
+}
+
 function resolutionLine(data: Record<string, unknown>): string | undefined {
   const x = num(data.XResolution);
   const y = num(data.YResolution);
@@ -163,12 +185,16 @@ export type UploadFileExtraction = {
  * Best-effort EXIF / ICC metadata for images, plus EXIF-based capture time when present.
  * Safe to call on any `File`.
  */
-export async function extractUploadMetadata(file: File): Promise<UploadFileExtraction> {
+export async function extractUploadMetadata(
+  file: File,
+): Promise<UploadFileExtraction> {
   if (!isImageFile(file.name, file.type)) {
     return { metadata: undefined, sourceFileCreatedMs: null };
   }
 
-  let data: Record<string, unknown>;
+  const actualDimensions = await parseImageDimensionsFromFile(file);
+
+  let data: Record<string, unknown> | null = null;
   try {
     const parsed = await exifr.parse(file, {
       icc: true,
@@ -180,33 +206,45 @@ export async function extractUploadMetadata(file: File): Promise<UploadFileExtra
       reviveValues: true,
       mergeOutput: true,
     });
-    if (!parsed || typeof parsed !== "object") {
-      return { metadata: undefined, sourceFileCreatedMs: null };
+    if (parsed && typeof parsed === "object") {
+      data = parsed as Record<string, unknown>;
     }
-    data = parsed as Record<string, unknown>;
   } catch {
-    return { metadata: undefined, sourceFileCreatedMs: null };
+    data = null;
   }
 
-  const contentCreatedRaw =
-    data.DateTimeOriginal ?? data.CreateDate ?? data.DateCreated ?? data.DateTime;
+  const contentCreatedRaw = data
+    ? (data.DateTimeOriginal ??
+      data.CreateDate ??
+      data.DateCreated ??
+      data.DateTime)
+    : undefined;
   const sourceFileCreatedMs = exifTimestampToMs(contentCreatedRaw);
 
   const meta: FileMetadataKv = {};
 
-  const w =
-    num(data.ExifImageWidth) ??
-    num(data.ImageWidth) ??
-    num(data.PixelXDimension) ??
-    num(data.width);
-  const h =
-    num(data.ExifImageHeight) ??
-    num(data.ImageHeight) ??
-    num(data.PixelYDimension) ??
-    num(data.height);
+  if (actualDimensions) {
+    put(
+      meta,
+      "Dimensions",
+      `${actualDimensions.width}×${actualDimensions.height}`,
+    );
+  }
 
-  if (w != null && h != null) {
-    put(meta, "Dimensions", `${Math.round(w)}×${Math.round(h)}`);
+  if (!data) {
+    return {
+      metadata: Object.keys(meta).length > 0 ? meta : undefined,
+      sourceFileCreatedMs,
+    };
+  }
+
+  const exifDimensions = exifDimensionsFromParsedData(data);
+  if (exifDimensions) {
+    put(
+      meta,
+      "Original dimensions",
+      `${exifDimensions.width}×${exifDimensions.height}`,
+    );
   }
 
   const res = resolutionLine(data);
@@ -215,7 +253,11 @@ export async function extractUploadMetadata(file: File): Promise<UploadFileExtra
   }
 
   put(meta, "Colour space", data.ColorSpace);
-  put(meta, "Colour profile", data.ProfileDescription ?? data.PreferredCMM ?? data.ProfileName);
+  put(
+    meta,
+    "Colour profile",
+    data.ProfileDescription ?? data.PreferredCMM ?? data.ProfileName,
+  );
 
   put(meta, "Device make", data.Make);
   put(meta, "Device model", data.Model);

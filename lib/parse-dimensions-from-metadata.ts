@@ -1,15 +1,9 @@
 import type { FileMetadataKv } from "@/db/schema";
 
-/**
- * Parses pixel size from upload EXIF metadata (`Dimensions` like `6048×4032`).
- */
-export function parseDimensionsFromMetadata(
-  metadata: FileMetadataKv | null | undefined,
-): { width: number; height: number } | null {
-  if (!metadata) {
-    return null;
-  }
-  const raw = metadata.Dimensions;
+export const DIMENSIONS_METADATA_KEY = "Dimensions";
+export const ORIGINAL_DIMENSIONS_METADATA_KEY = "Original dimensions";
+
+function parseDimensionString(raw: unknown): { width: number; height: number } | null {
   if (typeof raw !== "string") {
     return null;
   }
@@ -30,4 +24,29 @@ export function parseDimensionsFromMetadata(
     return null;
   }
   return { width, height };
+}
+
+/** Actual pixel size stored at upload (`Dimensions`, from encoded file bytes). */
+export function parseDimensionsFromMetadata(
+  metadata: FileMetadataKv | null | undefined,
+): { width: number; height: number } | null {
+  if (!metadata) {
+    return null;
+  }
+  return parseDimensionString(metadata[DIMENSIONS_METADATA_KEY]);
+}
+
+/**
+ * EXIF-reported pixel size (`Original dimensions`).
+ * Falls back to legacy `Dimensions` when older uploads only stored EXIF there.
+ */
+export function parseOriginalDimensionsFromMetadata(
+  metadata: FileMetadataKv | null | undefined,
+): { width: number; height: number } | null {
+  if (!metadata) {
+    return null;
+  }
+  return parseDimensionString(
+    metadata[ORIGINAL_DIMENSIONS_METADATA_KEY] ?? metadata[DIMENSIONS_METADATA_KEY],
+  );
 }
